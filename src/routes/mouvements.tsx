@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { DataPagination, usePagination } from "@/components/data-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +40,8 @@ function MouvementsPage() {
   const [filtre, setFiltre] = useState("Tous");
   const rows = MOUVEMENTS.filter((m) => filtre === "Tous" || m.type === filtre);
 
+  const { paged, page, pageCount, setPage, total } = usePagination(rows, 8);
+
   return (
     <AppShell title="Mouvements" subtitle="Journal de traçabilité des 7 derniers jours">
       <Card>
@@ -74,7 +77,7 @@ function MouvementsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((m) => (
+                  paged.map((m) => (
                     <TableRow key={m.id}>
                       <TableCell className="text-xs text-muted-foreground">{m.id}</TableCell>
                       <TableCell className="text-muted-foreground">{m.date}</TableCell>
@@ -97,6 +100,7 @@ function MouvementsPage() {
               </TableBody>
             </Table>
           </div>
+          <DataPagination page={page} pageCount={pageCount} total={total} onPageChange={setPage} label="mouvements" />
         </CardContent>
       </Card>
     </AppShell>

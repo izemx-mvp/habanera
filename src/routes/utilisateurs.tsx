@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { DataPagination, usePagination } from "@/components/data-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,6 +79,8 @@ function UsersPage() {
       u.role.toLowerCase().includes(q.toLowerCase()),
   );
 
+  const { paged, page, pageCount, setPage, total } = usePagination(rows, 8);
+
   function submit() {
     const next: { nom?: string; email?: string } = {};
     if (nom.trim().length < 3) next.nom = "Indiquez le nom complet.";
@@ -138,7 +141,7 @@ function UsersPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((u) => (
+                  paged.map((u) => (
                     <TableRow key={u.id} className="transition-colors duration-150">
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -212,6 +215,7 @@ function UsersPage() {
               </TableBody>
             </Table>
           </div>
+          <DataPagination page={page} pageCount={pageCount} total={total} onPageChange={setPage} label="comptes" />
         </CardContent>
       </Card>
 

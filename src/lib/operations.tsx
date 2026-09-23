@@ -9,7 +9,7 @@ export type Supplier = { id: string; name: string; category: string; address: st
 export type InventoryReport = { id: string; date: string; author: string; totalGap: number; lines: Array<{ article: string; theoretical: number; real: number; gap: number; value: number; unit: string }> };
 export type InventoryDraft = { savedAt: string; author: string; counts: Record<string, number> };
 export type WithdrawalLine = { articleId: string; requested: number; served: number; observation: string };
-export type WithdrawalRecord = { id: string; date: string; service: "Bar" | "Cuisine"; frequency: "Quotidien" | "Hebdo"; requester: string; validator: string; lines: WithdrawalLine[] };
+export type WithdrawalRecord = { id: string; date: string; service: "Bar" | "Cuisine"; frequency: "Quotidien" | "Hebdomadaire" | "Mixte"; requester: string; validator: string; lines: WithdrawalLine[] };
 
 const initialPurchases: Purchase[] = [
   { id: "BL-2409", supplier: "Atlas Distribution", articleId: "A-107", quantity: 120, receivedQuantity: 120, orderDate: "2026-09-22", expectedDate: "2026-09-23", receivedDate: "2026-09-23", unitPrice: 6, status: "Reçue" },
