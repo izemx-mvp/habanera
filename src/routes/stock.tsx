@@ -1,172 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUpDown, PackageSearch, Search } from "lucide-react";
+import { Eye, PackagePlus, Pencil, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ARTICLES, formatMAD } from "@/lib/habanera-data";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { type Article } from "@/lib/habanera-data";
+import { useOperations } from "@/lib/operations";
 
-export const Route = createFileRoute("/stock")({
-  head: () => ({
-    meta: [
-      { title: "Stock économat — Habanera" },
-      {
-        name: "description",
-        content: "Inventaire complet de l'économat Habanera avec tri, filtres et alertes de seuil.",
-      },
-      { property: "og:title", content: "Stock économat — Habanera" },
-      {
-        property: "og:description",
-        content: "Recherchez, triez et filtrez les références du stock de l'établissement.",
-      },
-    ],
-  }),
-  component: StockPage,
-});
-
-type SortKey = "nom" | "stock" | "prixAchat";
-
-function StockPage() {
-  const [q, setQ] = useState("");
-  const [point, setPoint] = useState("tous");
-  const [sort, setSort] = useState<SortKey>("nom");
-  const [asc, setAsc] = useState(true);
-
-  const rows = useMemo(() => {
-    const filtered = ARTICLES.filter(
-      (a) =>
-        (point === "tous" || a.point === point) &&
-        (a.nom.toLowerCase().includes(q.toLowerCase()) ||
-          a.categorie.toLowerCase().includes(q.toLowerCase())),
-    );
-    return [...filtered].sort((a, b) => {
-      const v =
-        sort === "nom" ? a.nom.localeCompare(b.nom) : sort === "stock" ? a.stock - b.stock : a.prixAchat - b.prix;
-      return asc ? v : -v;
-    });
-  }, [q, point, sort, asc]);
-
-  function toggleSort(key: SortKey) {
-    if (key === sort) setAsc((v) => !v);
-    else {
-      setSort(key);
-      setAsc(true);
-    }
-  }
-
-  return (
-    <AppShell title="Stock économat" subtitle={`${ARTICLES.length} références suivies`}>
-      <Card>
-        <CardContent className="p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher un article ou une catégorie..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={point} onValueChange={setPoint}>
-              <SelectTrigger className="sm:w-52">
-                <SelectValue placeholder="Point de stockage" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tous">Tous les points</SelectItem>
-                <SelectItem value="Bar">Bar</SelectItem>
-                <SelectItem value="Cuisine">Cuisine</SelectItem>
-                <SelectItem value="Économat">Économat</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="mt-5 overflow-hidden rounded-lg border border-border/70">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>
-                    <button
-                      onClick={() => toggleSort("nom")}
-                      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                    >
-                      Article <ArrowUpDown className="h-3 w-3" />
-                    </button>
-                  </TableHead>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead>Point</TableHead>
-                  <TableHead className="text-right">
-                    <button
-                      onClick={() => toggleSort("stock")}
-                      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                    >
-                      Stock <ArrowUpDown className="h-3 w-3" />
-                    </button>
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <button
-                      onClick={() => toggleSort("prixAchat")}
-                      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                    >
-                      Valeur <ArrowUpDown className="h-3 w-3" />
-                    </button>
-                  </TableHead>
-                  <TableHead className="text-right">État</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-16 text-center">
-                      <PackageSearch className="mx-auto h-8 w-8 text-muted-foreground" />
-                      <p className="mt-3 text-sm font-medium">Aucun article trouvé</p>
-                      <p className="text-xs text-muted-foreground">
-                        Modifiez votre recherche ou changez de point de stockage.
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  rows.map((a) => (
-                    <TableRow key={a.id} className="transition-colors duration-150">
-                      <TableCell className="font-medium">{a.nom}</TableCell>
-                      <TableCell className="text-muted-foreground">{a.categorie}</TableCell>
-                      <TableCell className="text-muted-foreground">{a.point}</TableCell>
-                      <TableCell className="text-right">
-                        {a.stock} {a.unite}
-                      </TableCell>
-                      <TableCell className="text-right">{formatMAD(a.stock * a.prixAchat)}</TableCell>
-                      <TableCell className="text-right">
-                        {a.stock < a.seuil ? (
-                          <Badge variant="destructive">Sous seuil</Badge>
-                        ) : (
-                          <Badge variant="secondary">Suffisant</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </AppShell>
-  );
-}
+export const Route=createFileRoute("/stock")({head:()=>({meta:[{title:"Produits & Stocks — Habanera"},{name:"description",content:"Recherche, mouvements et stock actuel de chaque produit Habanera."},{property:"og:title",content:"Produits & Stocks — Habanera"},{property:"og:description",content:"Consultez et gérez instantanément les stocks de l'économat."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Page});
+const categories=["Spiritueux","Vins","Épicerie","Frais","Boissons"] as const;
+function Page(){const{articles,addArticle,updateArticle,removeArticle}=useOperations();const[q,setQ]=useState("");const[category,setCategory]=useState("Toutes");const[open,setOpen]=useState(false);const[selected,setSelected]=useState<Article|null>(null);const[mode,setMode]=useState<"add"|"edit"|"view">("add");const[form,setForm]=useState({nom:"",categorie:"Épicerie" as Article["categorie"],unite:"kg",stockInitial:0,seuil:0,prixAchat:0,point:"Économat" as Article["point"]});const rows=useMemo(()=>articles.filter((a)=>(category==="Toutes"||a.categorie===category)&&(a.nom.toLowerCase().includes(q.toLowerCase())||a.categorie.toLowerCase().includes(q.toLowerCase()))),[articles,q,category]);function launch(next:"add"|"edit"|"view",a?:Article){setMode(next);setSelected(a??null);setForm(a?{nom:a.nom,categorie:a.categorie,unite:a.unite,stockInitial:a.stockInitial,seuil:a.seuil,prixAchat:a.prixAchat,point:a.point}:{nom:"",categorie:"Épicerie",unite:"kg",stockInitial:0,seuil:0,prixAchat:0,point:"Économat"});setOpen(true)}function save(){if(form.nom.trim().length<2||form.stockInitial<0)return;if(mode==="edit"&&selected)updateArticle(selected.id,{...form,stock:form.stockInitial,prix:form.prixAchat});else addArticle(form);setOpen(false);toast.success(mode==="edit"?"Produit mis à jour.":"Produit ajouté au stock.")}return <AppShell title="Produits & Stocks" subtitle={`${articles.length} références · Stock J = Stock J-1 + Achats - Ventes - Prélèvements`} action={<Button onClick={()=>launch("add")}><PackagePlus className="mr-2 h-4 w-4"/>Ajouter un produit</Button>}><Card><CardContent className="p-5"><div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input className="pl-9" placeholder="Quel produit cherchez-vous ?" value={q} onChange={(e)=>setQ(e.target.value)}/></div><Select value={category} onValueChange={setCategory}><SelectTrigger className="sm:w-52"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Toutes">Toutes les catégories</SelectItem>{categories.map((c)=><SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div><div className="mt-5 overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Unité</TableHead><TableHead>Stock fixe</TableHead><TableHead>Achats</TableHead><TableHead>Ventes</TableHead><TableHead>Prélèvements</TableHead><TableHead>Stock actuel</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{rows.map((a)=><TableRow key={a.id}><TableCell className="font-medium">{a.nom}</TableCell><TableCell>{a.categorie}</TableCell><TableCell>{a.unite}</TableCell><TableCell>{a.stockInitial}</TableCell><TableCell>{a.achats}</TableCell><TableCell>{a.ventes}</TableCell><TableCell>{a.prelevements}</TableCell><TableCell><Badge variant={a.stock<a.seuil?"destructive":"secondary"}>{a.stock} {a.unite}</Badge></TableCell><TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" title="Détails" onClick={()=>launch("view",a)}><Eye className="h-4 w-4"/></Button><Button size="icon" variant="ghost" title="Éditer" onClick={()=>launch("edit",a)}><Pencil className="h-4 w-4"/></Button><Button size="icon" variant="ghost" title="Supprimer" onClick={()=>{removeArticle(a.id);toast.success("Produit supprimé.")}}><Trash2 className="h-4 w-4 text-destructive"/></Button></div></TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card><Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>{mode==="add"?"Ajouter un produit":mode==="edit"?"Éditer le produit":"Détails du produit"}</DialogTitle><DialogDescription>Les données sont mises à jour instantanément dans ce MVP.</DialogDescription></DialogHeader><div className="grid gap-4 sm:grid-cols-2"><div className="sm:col-span-2"><Label>Nom</Label><Input disabled={mode==="view"} value={form.nom} onChange={(e)=>setForm({...form,nom:e.target.value})}/></div><div><Label>Catégorie</Label><Select disabled={mode==="view"} value={form.categorie} onValueChange={(v)=>setForm({...form,categorie:v as Article["categorie"]})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categories.map((c)=><SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div><div><Label>Unité</Label><Input disabled={mode==="view"} value={form.unite} onChange={(e)=>setForm({...form,unite:e.target.value})}/></div><div><Label>Stock fixe</Label><Input disabled={mode==="view"} type="number" value={form.stockInitial} onChange={(e)=>setForm({...form,stockInitial:Number(e.target.value)})}/></div><div><Label>Seuil d'alerte</Label><Input disabled={mode==="view"} type="number" value={form.seuil} onChange={(e)=>setForm({...form,seuil:Number(e.target.value)})}/></div><div><Label>Prix d'achat (MAD)</Label><Input disabled={mode==="view"} type="number" value={form.prixAchat} onChange={(e)=>setForm({...form,prixAchat:Number(e.target.value)})}/></div><div><Label>Point</Label><Select disabled={mode==="view"} value={form.point} onValueChange={(v)=>setForm({...form,point:v as Article["point"]})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{["Économat","Bar","Cuisine"].map((p)=><SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button variant="outline" onClick={()=>setOpen(false)}>Fermer</Button>{mode!=="view"&&<Button onClick={save}>Enregistrer</Button>}</DialogFooter></DialogContent></Dialog></AppShell>}

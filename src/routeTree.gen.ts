@@ -10,15 +10,46 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AchatsReceptionsRouteImport } from './routes/achats-receptions'
+import { Route as AlertesRouteImport } from './routes/alertes'
+import { Route as BonsPrelevementRouteImport } from './routes/bons-prelevement'
+import { Route as FournisseursRouteImport } from './routes/fournisseurs'
+import { Route as InventaireRouteImport } from './routes/inventaire'
 import { Route as MouvementsRouteImport } from './routes/mouvements'
 import { Route as ParametresRouteImport } from './routes/parametres'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as TableauDeBordRouteImport } from './routes/tableau-de-bord'
 import { Route as UtilisateursRouteImport } from './routes/utilisateurs'
+import { Route as VentesZRouteImport } from './routes/ventes-z'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AchatsReceptionsRoute = AchatsReceptionsRouteImport.update({
+  id: '/achats-receptions',
+  path: '/achats-receptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlertesRoute = AlertesRouteImport.update({
+  id: '/alertes',
+  path: '/alertes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BonsPrelevementRoute = BonsPrelevementRouteImport.update({
+  id: '/bons-prelevement',
+  path: '/bons-prelevement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FournisseursRoute = FournisseursRouteImport.update({
+  id: '/fournisseurs',
+  path: '/fournisseurs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventaireRoute = InventaireRouteImport.update({
+  id: '/inventaire',
+  path: '/inventaire',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MouvementsRoute = MouvementsRouteImport.update({
@@ -46,66 +77,113 @@ const UtilisateursRoute = UtilisateursRouteImport.update({
   path: '/utilisateurs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VentesZRoute = VentesZRouteImport.update({
+  id: '/ventes-z',
+  path: '/ventes-z',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/achats-receptions': typeof AchatsReceptionsRoute
+  '/alertes': typeof AlertesRoute
+  '/bons-prelevement': typeof BonsPrelevementRoute
+  '/fournisseurs': typeof FournisseursRoute
+  '/inventaire': typeof InventaireRoute
   '/mouvements': typeof MouvementsRoute
   '/parametres': typeof ParametresRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
+  '/ventes-z': typeof VentesZRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/achats-receptions': typeof AchatsReceptionsRoute
+  '/alertes': typeof AlertesRoute
+  '/bons-prelevement': typeof BonsPrelevementRoute
+  '/fournisseurs': typeof FournisseursRoute
+  '/inventaire': typeof InventaireRoute
   '/mouvements': typeof MouvementsRoute
   '/parametres': typeof ParametresRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
+  '/ventes-z': typeof VentesZRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/achats-receptions': typeof AchatsReceptionsRoute
+  '/alertes': typeof AlertesRoute
+  '/bons-prelevement': typeof BonsPrelevementRoute
+  '/fournisseurs': typeof FournisseursRoute
+  '/inventaire': typeof InventaireRoute
   '/mouvements': typeof MouvementsRoute
   '/parametres': typeof ParametresRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
+  '/ventes-z': typeof VentesZRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/achats-receptions'
+    | '/alertes'
+    | '/bons-prelevement'
+    | '/fournisseurs'
+    | '/inventaire'
     | '/mouvements'
     | '/parametres'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
+    | '/ventes-z'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/achats-receptions'
+    | '/alertes'
+    | '/bons-prelevement'
+    | '/fournisseurs'
+    | '/inventaire'
     | '/mouvements'
     | '/parametres'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
+    | '/ventes-z'
   id:
     | '__root__'
     | '/'
+    | '/achats-receptions'
+    | '/alertes'
+    | '/bons-prelevement'
+    | '/fournisseurs'
+    | '/inventaire'
     | '/mouvements'
     | '/parametres'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
+    | '/ventes-z'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AchatsReceptionsRoute: typeof AchatsReceptionsRoute
+  AlertesRoute: typeof AlertesRoute
+  BonsPrelevementRoute: typeof BonsPrelevementRoute
+  FournisseursRoute: typeof FournisseursRoute
+  InventaireRoute: typeof InventaireRoute
   MouvementsRoute: typeof MouvementsRoute
   ParametresRoute: typeof ParametresRoute
   StockRoute: typeof StockRoute
   TableauDeBordRoute: typeof TableauDeBordRoute
   UtilisateursRoute: typeof UtilisateursRoute
+  VentesZRoute: typeof VentesZRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -115,6 +193,41 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/achats-receptions': {
+      id: '/achats-receptions'
+      path: '/achats-receptions'
+      fullPath: '/achats-receptions'
+      preLoaderRoute: typeof AchatsReceptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alertes': {
+      id: '/alertes'
+      path: '/alertes'
+      fullPath: '/alertes'
+      preLoaderRoute: typeof AlertesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bons-prelevement': {
+      id: '/bons-prelevement'
+      path: '/bons-prelevement'
+      fullPath: '/bons-prelevement'
+      preLoaderRoute: typeof BonsPrelevementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fournisseurs': {
+      id: '/fournisseurs'
+      path: '/fournisseurs'
+      fullPath: '/fournisseurs'
+      preLoaderRoute: typeof FournisseursRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventaire': {
+      id: '/inventaire'
+      path: '/inventaire'
+      fullPath: '/inventaire'
+      preLoaderRoute: typeof InventaireRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mouvements': {
@@ -152,16 +265,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UtilisateursRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ventes-z': {
+      id: '/ventes-z'
+      path: '/ventes-z'
+      fullPath: '/ventes-z'
+      preLoaderRoute: typeof VentesZRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AchatsReceptionsRoute: AchatsReceptionsRoute,
+  AlertesRoute: AlertesRoute,
+  BonsPrelevementRoute: BonsPrelevementRoute,
+  FournisseursRoute: FournisseursRoute,
+  InventaireRoute: InventaireRoute,
   MouvementsRoute: MouvementsRoute,
   ParametresRoute: ParametresRoute,
   StockRoute: StockRoute,
   TableauDeBordRoute: TableauDeBordRoute,
   UtilisateursRoute: UtilisateursRoute,
+  VentesZRoute: VentesZRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
