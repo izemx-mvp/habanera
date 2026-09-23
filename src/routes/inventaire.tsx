@@ -1,0 +1,12 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useOperations } from "@/lib/operations";
+export const Route=createFileRoute("/inventaire")({head:()=>({meta:[{title:"Inventaire — Habanera"},{name:"description",content:"Comparaison des stocks théoriques et réels Habanera."},{property:"og:title",content:"Inventaire — Habanera"},{property:"og:description",content:"Saisissez le stock réel et identifiez les écarts."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Page});
+function Page(){const{articles,updateArticle}=useOperations();const[counts,setCounts]=useState<Record<string,number>>(()=>Object.fromEntries(articles.map((a)=>[a.id,a.stock])));return <AppShell title="Inventaire" subtitle="Comparatif théorique vs réel"><Card><CardContent className="p-5"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Produit</TableHead><TableHead>Théorique</TableHead><TableHead>Stock réel</TableHead><TableHead>Écart</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{articles.map((a)=>{const real=counts[a.id]??a.stock;const gap=real-a.stock;return <TableRow key={a.id}><TableCell className="font-medium">{a.nom}</TableCell><TableCell>{a.stock} {a.unite}</TableCell><TableCell><Input className="w-28" type="number" min={0} value={real} onChange={(e)=>setCounts((c)=>({...c,[a.id]:Number(e.target.value)}))}/></TableCell><TableCell><Badge variant={gap===0?"secondary":"destructive"}>{gap>0?`+${gap}`:gap} {a.unite}</Badge></TableCell><TableCell className="text-right"><Button size="sm" variant="outline" disabled={gap===0} onClick={()=>{updateArticle(a.id,{stock:real});toast.success(`Stock de ${a.nom} ajusté.`);}}>Ajuster le stock</Button></TableCell></TableRow>})}</TableBody></Table></div></CardContent></Card></AppShell>}

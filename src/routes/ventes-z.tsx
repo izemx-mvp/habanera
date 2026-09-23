@@ -1,0 +1,16 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatMAD } from "@/lib/habanera-data";
+import { useOperations } from "@/lib/operations";
+
+export const Route = createFileRoute("/ventes-z")({ head: () => ({ meta: [{ title: "Ventes & Données Z — Habanera" }, { name: "description", content: "Intégration des données de caisse journalières Habanera." }, { property: "og:title", content: "Ventes & Données Z — Habanera" }, { property: "og:description", content: "Consultez les clôtures et consommations journalières." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Page });
+function Page(){const{sales,addSale}=useOperations();const[point,setPoint]=useState<"Bar"|"Cuisine">("Bar");const[total,setTotal]=useState(0);const[tickets,setTickets]=useState(0);return <AppShell title="Ventes & Z" subtitle="Données de caisse alimentant la consommation"><div className="grid gap-5 xl:grid-cols-[360px_1fr]"><Card><CardHeader><CardTitle className="text-base">Intégrer une clôture Z</CardTitle></CardHeader><CardContent className="space-y-4"><div><Label>Point de vente</Label><Select value={point} onValueChange={(v)=>setPoint(v as "Bar"|"Cuisine")}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Bar">Bar</SelectItem><SelectItem value="Cuisine">Cuisine</SelectItem></SelectContent></Select></div><div><Label>Chiffre d'affaires (MAD)</Label><Input type="number" value={total||""} onChange={(e)=>setTotal(Number(e.target.value))}/></div><div><Label>Nombre de tickets</Label><Input type="number" value={tickets||""} onChange={(e)=>setTickets(Number(e.target.value))}/></div><Button className="w-full" onClick={()=>{if(total<1||tickets<1)return;addSale({point,total,tickets,date:"23/09/2026",status:"Intégrée"});toast.success("Données Z intégrées.");}}>Intégrer les données</Button></CardContent></Card><Card><CardContent className="p-5"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Référence</TableHead><TableHead>Date</TableHead><TableHead>Point</TableHead><TableHead>Tickets</TableHead><TableHead>Total</TableHead><TableHead>Statut</TableHead></TableRow></TableHeader><TableBody>{sales.map((s)=><TableRow key={s.id}><TableCell>{s.id}</TableCell><TableCell>{s.date}</TableCell><TableCell>{s.point}</TableCell><TableCell>{s.tickets}</TableCell><TableCell>{formatMAD(s.total)}</TableCell><TableCell><Badge variant={s.status==="Intégrée"?"secondary":"outline"}>{s.status}</Badge></TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card></div></AppShell>}

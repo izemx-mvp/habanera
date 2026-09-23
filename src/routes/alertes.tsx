@@ -1,0 +1,11 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useOperations } from "@/lib/operations";
+export const Route=createFileRoute("/alertes")({head:()=>({meta:[{title:"Alertes & Anomalies — Habanera"},{name:"description",content:"Centralisation des anomalies de stock Habanera."},{property:"og:title",content:"Alertes & Anomalies — Habanera"},{property:"og:description",content:"Traitez les ruptures, écarts et réceptions non conformes."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Page});
+function Page(){const{alerts,resolveAlert}=useOperations();const[filter,setFilter]=useState("Actives");const rows=alerts.filter((a)=>filter==="Toutes"||(filter==="Actives"?!a.resolved:a.level===filter));return <AppShell title="Alertes & Anomalies" subtitle={`${alerts.filter((a)=>!a.resolved).length} irrégularités actives`}><Card><CardContent className="p-5"><Tabs value={filter} onValueChange={setFilter}><TabsList><TabsTrigger value="Actives">Actives</TabsTrigger><TabsTrigger value="Critique">Critiques</TabsTrigger><TabsTrigger value="Élevée">Élevées</TabsTrigger><TabsTrigger value="Toutes">Toutes</TabsTrigger></TabsList></Tabs><div className="mt-5 divide-y divide-border">{rows.map((a)=><div key={a.id} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center"><div className="flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant={a.level==="Critique"?"destructive":"outline"}>{a.level}</Badge><Badge variant="secondary">{a.type}</Badge></div><p className="mt-2 font-medium">{a.title}</p><p className="mt-1 text-sm text-muted-foreground">{a.detail}</p></div>{a.resolved?<Badge variant="secondary">Résolue</Badge>:<Button variant="outline" onClick={()=>{resolveAlert(a.id);toast.success("Anomalie marquée comme résolue.");}}>Marquer comme résolue</Button>}</div>)}</div></CardContent></Card></AppShell>}
