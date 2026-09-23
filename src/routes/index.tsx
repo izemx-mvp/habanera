@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,6 +22,8 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Contrôle intelligent des stocks de l'établissement Habanera à Marrakech.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: LoginPage,
@@ -28,6 +31,7 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const { isAuthenticated, login } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState("salah.bennani@habanera.com");
   const [password, setPassword] = useState("habanera2026");
@@ -55,14 +59,12 @@ function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+    <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+      <Button variant="outline" size="icon" onClick={toggleTheme} className="absolute right-5 top-5 z-20" aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
       <div className="relative hidden flex-col justify-between bg-sidebar p-12 text-sidebar-foreground lg:flex">
         <div
           className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, oklch(0.62 0.16 45 / 0.5), transparent 45%), radial-gradient(circle at 80% 70%, oklch(0.45 0.09 160 / 0.6), transparent 50%)",
-          }}
+          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--primary) 42%, transparent), transparent 45%), radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--sidebar-foreground) 18%, transparent), transparent 50%)" }}
         />
         <div className="relative">
           <p className="font-display text-3xl">Habanera</p>
@@ -84,7 +86,7 @@ function LoginPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center px-6 py-14">
+      <div className="flex flex-col items-center justify-center px-6 py-14">
         <form onSubmit={submit} className="w-full max-w-sm">
           <h1 className="text-3xl">Bon retour</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -142,6 +144,7 @@ function LoginPage() {
             Démo : identifiants pré-remplis pour le compte Administrateur Salah Bennani.
           </p>
         </form>
+        <footer className="absolute bottom-5 left-0 right-0 text-center text-xs text-muted-foreground">Ce MVP a été conçu et développé par IZEMX</footer>
       </div>
     </div>
   );

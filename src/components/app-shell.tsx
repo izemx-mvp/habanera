@@ -1,7 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   AlertOctagon,
-  BookOpenCheck,
   Boxes,
   ChevronDown,
   ClipboardCheck,
@@ -10,13 +9,11 @@ import {
   Moon,
   PackagePlus,
   ReceiptText,
-  ShoppingCart,
   Sun,
   Truck,
   X,
   LayoutDashboard,
   LogOut,
-  Repeat,
   Settings,
   Users,
 } from "lucide-react";
