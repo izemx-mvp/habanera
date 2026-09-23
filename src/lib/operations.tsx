@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ARTICLES, type Article } from "@/lib/habanera-data";
-import { OperationsContext, type NewArticle } from "@/lib/operations-context";
+import { OperationsContext, type NewArticle, type Purchase, type Sale, type AlertItem, type Supplier, type InventoryReport, type InventoryDraft, type WithdrawalRecord } from "@/lib/operations-context";
 export type * from "@/lib/operations-context";
 
 const initialPurchases: Purchase[] = [
