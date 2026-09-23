@@ -46,7 +46,8 @@ function Page() {
       if (!grouped[recordFrequency].length) return;
       created.push(validateWithdrawal({ date, service, frequency: recordFrequency, requester: requester[service], validator: "Salah Bennani — Responsable des stocks", lines: grouped[recordFrequency].map((id) => { const article = articles.find((item) => item.id === id); const requested = article ? Math.min(article.stock, article.ventes) : 0; const served = Math.max(0, Math.min(article?.stock ?? 0, quantities[id] ?? requested)); return { articleId: id, requested, served, observation: served < requested ? "Stock insuffisant" : service === "Cuisine" ? "Contrôle température OK" : "Quantité contrôlée" }; }) }));
     });
-    if (created.length) { setDocument(makeDocument(created[0])); toast.success(ids.length > 1 ? "Prélèvements validés et bons générés." : "Prélèvement validé et bon généré."); }
+    const firstRecord = created[0];
+    if (firstRecord) { setDocument(makeDocument(firstRecord)); toast.success(ids.length > 1 ? "Prélèvements validés et bons générés." : "Prélèvement validé et bon généré."); }
   }
 
   return <AppShell title="Bons de Prélèvement" subtitle={`${pending.length} suggestion${pending.length > 1 ? "s" : ""} à valider pour le ${date.split("-").reverse().join("/")}`} action={<Button disabled={!pending.length} onClick={() => validateLines(pending.map((article) => article.id))}><CheckCircle2 className="mr-2 h-4 w-4" />Tout valider</Button>}>
