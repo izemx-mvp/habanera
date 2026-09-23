@@ -52,7 +52,7 @@ function DashboardPage() {
   const kpis = [
     { label: "Valeur du stock", value: formatMAD(valeur), trend: "+4,2 %", up: true, icon: Wallet, to: "/stock" as const },
     { label: "Alertes de rupture", value: `${alertes.length}`, trend: "à traiter", up: false, icon: AlertTriangle, to: "/alertes" as const },
-    { label: "Bons en attente", value: `${articles.filter((a) => a.point !== "Économat" && a.ventes > 0).length}`, trend: "prélèvements suggérés", up: false, icon: ClipboardList, to: "/bons-prelevement" as const },
+    { label: "Bons en attente", value: `${articles.filter((a) => a.ventes > 0).length}`, trend: "prélèvements suggérés", up: false, icon: ClipboardList, to: "/bons-prelevement" as const },
     { label: "Commandes en cours", value: `${purchases.filter((p) => p.status === "En cours").length}`, trend: "livraison attendue", up: true, icon: ShoppingCart, to: "/achats-receptions" as const },
   ];
 
