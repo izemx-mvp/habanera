@@ -10,33 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MouvementsRouteImport } from './routes/mouvements'
+import { Route as ParametresRouteImport } from './routes/parametres'
+import { Route as StockRouteImport } from './routes/stock'
+import { Route as TableauDeBordRouteImport } from './routes/tableau-de-bord'
+import { Route as UtilisateursRouteImport } from './routes/utilisateurs'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MouvementsRoute = MouvementsRouteImport.update({
+  id: '/mouvements',
+  path: '/mouvements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParametresRoute = ParametresRouteImport.update({
+  id: '/parametres',
+  path: '/parametres',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StockRoute = StockRouteImport.update({
+  id: '/stock',
+  path: '/stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TableauDeBordRoute = TableauDeBordRouteImport.update({
+  id: '/tableau-de-bord',
+  path: '/tableau-de-bord',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UtilisateursRoute = UtilisateursRouteImport.update({
+  id: '/utilisateurs',
+  path: '/utilisateurs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mouvements': typeof MouvementsRoute
+  '/parametres': typeof ParametresRoute
+  '/stock': typeof StockRoute
+  '/tableau-de-bord': typeof TableauDeBordRoute
+  '/utilisateurs': typeof UtilisateursRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mouvements': typeof MouvementsRoute
+  '/parametres': typeof ParametresRoute
+  '/stock': typeof StockRoute
+  '/tableau-de-bord': typeof TableauDeBordRoute
+  '/utilisateurs': typeof UtilisateursRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mouvements': typeof MouvementsRoute
+  '/parametres': typeof ParametresRoute
+  '/stock': typeof StockRoute
+  '/tableau-de-bord': typeof TableauDeBordRoute
+  '/utilisateurs': typeof UtilisateursRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/mouvements'
+    | '/parametres'
+    | '/stock'
+    | '/tableau-de-bord'
+    | '/utilisateurs'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/mouvements'
+    | '/parametres'
+    | '/stock'
+    | '/tableau-de-bord'
+    | '/utilisateurs'
+  id:
+    | '__root__'
+    | '/'
+    | '/mouvements'
+    | '/parametres'
+    | '/stock'
+    | '/tableau-de-bord'
+    | '/utilisateurs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MouvementsRoute: typeof MouvementsRoute
+  ParametresRoute: typeof ParametresRoute
+  StockRoute: typeof StockRoute
+  TableauDeBordRoute: typeof TableauDeBordRoute
+  UtilisateursRoute: typeof UtilisateursRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +117,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mouvements': {
+      id: '/mouvements'
+      path: '/mouvements'
+      fullPath: '/mouvements'
+      preLoaderRoute: typeof MouvementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parametres': {
+      id: '/parametres'
+      path: '/parametres'
+      fullPath: '/parametres'
+      preLoaderRoute: typeof ParametresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stock': {
+      id: '/stock'
+      path: '/stock'
+      fullPath: '/stock'
+      preLoaderRoute: typeof StockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tableau-de-bord': {
+      id: '/tableau-de-bord'
+      path: '/tableau-de-bord'
+      fullPath: '/tableau-de-bord'
+      preLoaderRoute: typeof TableauDeBordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/utilisateurs': {
+      id: '/utilisateurs'
+      path: '/utilisateurs'
+      fullPath: '/utilisateurs'
+      preLoaderRoute: typeof UtilisateursRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MouvementsRoute: MouvementsRoute,
+  ParametresRoute: ParametresRoute,
+  StockRoute: StockRoute,
+  TableauDeBordRoute: TableauDeBordRoute,
+  UtilisateursRoute: UtilisateursRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
