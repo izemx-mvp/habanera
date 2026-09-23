@@ -1,7 +1,7 @@
 export type Article = {
   id: string;
   nom: string;
-  categorie: "Spiritueux" | "Vins" | "Épicerie" | "Frais" | "Boissons";
+  categorie: "Spiritueux" | "Vins" | "Épicerie" | "Frais" | "Boissons" | "Verrerie" | "Produits secs";
   point: "Bar" | "Cuisine" | "Économat";
   stock: number;
   stockInitial: number;
@@ -25,6 +25,16 @@ export const ARTICLES: Article[] = [
   { id: "A-108", nom: "Beurre doux", categorie: "Frais", point: "Cuisine", stock: 14, stockInitial: 16, achats: 8, ventes: 7, prelevements: 3, seuil: 10, unite: "kg", prix: 78, prixAchat: 78 },
   { id: "A-109", nom: "Champagne brut", categorie: "Vins", point: "Bar", stock: 5, stockInitial: 8, achats: 2, ventes: 4, prelevements: 1, seuil: 6, unite: "btl", prix: 1250, prixAchat: 1250 },
   { id: "A-110", nom: "Amandes grillées", categorie: "Épicerie", point: "Économat", stock: 26, stockInitial: 30, achats: 12, ventes: 10, prelevements: 6, seuil: 12, unite: "kg", prix: 110, prixAchat: 110 },
+  { id: "A-111", nom: "Vodka premium", categorie: "Spiritueux", point: "Bar", stock: 11, stockInitial: 18, achats: 6, ventes: 9, prelevements: 4, seuil: 8, unite: "btl", prix: 410, prixAchat: 410 },
+  { id: "A-112", nom: "Liqueur d’orange", categorie: "Spiritueux", point: "Bar", stock: 7, stockInitial: 14, achats: 3, ventes: 7, prelevements: 3, seuil: 8, unite: "btl", prix: 265, prixAchat: 265 },
+  { id: "A-113", nom: "Tonic artisanal", categorie: "Boissons", point: "Bar", stock: 46, stockInitial: 72, achats: 24, ventes: 38, prelevements: 12, seuil: 36, unite: "btl", prix: 18, prixAchat: 18 },
+  { id: "A-114", nom: "Verres à cocktail", categorie: "Verrerie", point: "Bar", stock: 28, stockInitial: 36, achats: 6, ventes: 0, prelevements: 14, seuil: 24, unite: "pièce", prix: 42, prixAchat: 42 },
+  { id: "A-115", nom: "Menthe fraîche", categorie: "Frais", point: "Cuisine", stock: 4, stockInitial: 12, achats: 6, ventes: 10, prelevements: 4, seuil: 7, unite: "kg", prix: 32, prixAchat: 32 },
+  { id: "A-116", nom: "Filet de bœuf", categorie: "Frais", point: "Cuisine", stock: 18, stockInitial: 25, achats: 12, ventes: 14, prelevements: 5, seuil: 12, unite: "kg", prix: 190, prixAchat: 190 },
+  { id: "A-117", nom: "Riz basmati", categorie: "Produits secs", point: "Cuisine", stock: 21, stockInitial: 30, achats: 15, ventes: 18, prelevements: 6, seuil: 16, unite: "kg", prix: 29, prixAchat: 29 },
+  { id: "A-118", nom: "Farine pâtissière", categorie: "Produits secs", point: "Cuisine", stock: 8, stockInitial: 20, achats: 10, ventes: 16, prelevements: 6, seuil: 12, unite: "kg", prix: 12, prixAchat: 12 },
+  { id: "A-119", nom: "Crème fraîche", categorie: "Frais", point: "Cuisine", stock: 13, stockInitial: 18, achats: 8, ventes: 9, prelevements: 4, seuil: 10, unite: "L", prix: 48, prixAchat: 48 },
+  { id: "A-120", nom: "Café arabica", categorie: "Épicerie", point: "Bar", stock: 16, stockInitial: 24, achats: 12, ventes: 14, prelevements: 6, seuil: 12, unite: "kg", prix: 165, prixAchat: 165 },
 ];
 
 export type Mouvement = {

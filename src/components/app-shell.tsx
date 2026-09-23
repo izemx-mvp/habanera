@@ -86,13 +86,13 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-border/70 bg-background/85 px-6 py-4 backdrop-blur">
+        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border/70 bg-background/85 px-4 py-4 backdrop-blur sm:px-6 md:flex-nowrap md:gap-4">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(true)} aria-label="Ouvrir la navigation"><Menu className="h-5 w-5" /></Button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl">{title}</h1>
             {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
           </div>
-          {action}
+          {action && <div className="order-last flex w-full justify-end md:order-none md:w-auto">{action}</div>}
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-3 transition-colors duration-200 hover:bg-secondary">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">

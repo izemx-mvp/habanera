@@ -16,3 +16,11 @@
 - [x] Ajouter la gestion fournisseurs et les recommandations automatiques
 - [x] Ajouter le suivi détaillé et l’historique de résolution des alertes
 - [x] Vérifier les parcours, impressions, téléchargements et vues mobiles
+
+## Mise à jour ciblée septembre 2026
+
+- [x] Ajouter la sauvegarde rapide du comptage d’inventaire
+- [x] Séparer les prélèvements Bar/Cuisine et ajouter validation groupée, filtres et bons persistants
+- [x] Clarifier les catégories Bar/Cuisine dans Produits & Stocks
+- [x] Enrichir les produits, fournisseurs et alertes de démonstration
+- [x] Vérifier les parcours sur ordinateur et mobile
