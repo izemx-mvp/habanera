@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CONSOMMATION, formatMAD } from "@/lib/habanera-data";
-import { useOperations } from "@/lib/operations";
+import { useOperations } from "@/lib/operations-context";
 
 export const Route = createFileRoute("/tableau-de-bord")({
   head: () => ({

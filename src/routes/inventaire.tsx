@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatMAD } from "@/lib/habanera-data";
-import { useOperations, type InventoryReport } from "@/lib/operations";
+import {type InventoryReport} from "@/lib/operations";import { useOperations } from "@/lib/operations-context";
 import type { OfficialDocument } from "@/lib/pdf";
 
 export const Route = createFileRoute("/inventaire")({ head: () => ({ meta: [{ title: "Inventaire — Habanera" }, { name: "description", content: "Comparatif des stocks et démarque." }, { property: "og:title", content: "Inventaire — Habanera" }, { property: "og:description", content: "Sauvegarde, clôture et rapport d’inventaire." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Page });

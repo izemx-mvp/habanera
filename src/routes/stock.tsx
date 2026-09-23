@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Article, type Frequence } from "@/lib/habanera-data";
-import { useOperations } from "@/lib/operations";
+import { useOperations } from "@/lib/operations-context";
 
 export const Route = createFileRoute("/stock")({ head: () => ({ meta: [{ title: "Produits & Stocks — Habanera" }, { name: "description", content: "Recherche, mouvements et stock actuel de chaque produit Habanera." }, { property: "og:title", content: "Produits & Stocks — Habanera" }, { property: "og:description", content: "Consultez et gérez instantanément les stocks de l'économat." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Page });
 
