@@ -41,7 +41,7 @@ export const Route = createFileRoute("/stock")({
   component: StockPage,
 });
 
-type SortKey = "nom" | "stock" | "prix";
+type SortKey = "nom" | "stock" | "prixAchat";
 
 function StockPage() {
   const [q, setQ] = useState("");
@@ -58,7 +58,7 @@ function StockPage() {
     );
     return [...filtered].sort((a, b) => {
       const v =
-        sort === "nom" ? a.nom.localeCompare(b.nom) : sort === "stock" ? a.stock - b.stock : a.prix - b.prix;
+        sort === "nom" ? a.nom.localeCompare(b.nom) : sort === "stock" ? a.stock - b.stock : a.prixAchat - b.prix;
       return asc ? v : -v;
     });
   }, [q, point, sort, asc]);
@@ -122,7 +122,7 @@ function StockPage() {
                   </TableHead>
                   <TableHead className="text-right">
                     <button
-                      onClick={() => toggleSort("prix")}
+                      onClick={() => toggleSort("prixAchat")}
                       className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
                     >
                       Valeur <ArrowUpDown className="h-3 w-3" />
@@ -151,7 +151,7 @@ function StockPage() {
                       <TableCell className="text-right">
                         {a.stock} {a.unite}
                       </TableCell>
-                      <TableCell className="text-right">{formatMAD(a.stock * a.prix)}</TableCell>
+                      <TableCell className="text-right">{formatMAD(a.stock * a.prixAchat)}</TableCell>
                       <TableCell className="text-right">
                         {a.stock < a.seuil ? (
                           <Badge variant="destructive">Sous seuil</Badge>

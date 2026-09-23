@@ -42,7 +42,7 @@ function DashboardPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const valeur = ARTICLES.reduce((sum, a) => sum + a.stock * a.prix, 0);
+  const valeur = ARTICLES.reduce((sum, a) => sum + a.stock * a.prixAchat, 0);
   const alertes = ARTICLES.filter((a) => a.stock < a.seuil);
 
   const kpis = [
