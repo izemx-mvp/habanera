@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, ClipboardList, ShoppingCart, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -50,10 +50,10 @@ function DashboardPage() {
   const alertes = articles.filter((a) => a.stock < a.seuil);
 
   const kpis = [
-    { label: "Valeur du stock", value: formatMAD(valeur), trend: "+4,2 %", up: true, icon: Wallet },
-    { label: "Alertes de rupture", value: `${alertes.length}`, trend: "à traiter", up: false, icon: AlertTriangle },
-    { label: "Bons en attente", value: `${articles.filter((a) => a.point !== "Économat" && a.ventes > 0).length}`, trend: "prélèvements suggérés", up: false, icon: ClipboardList },
-    { label: "Commandes en cours", value: `${purchases.filter((p) => p.status === "En cours").length}`, trend: "livraison attendue", up: true, icon: ShoppingCart },
+    { label: "Valeur du stock", value: formatMAD(valeur), trend: "+4,2 %", up: true, icon: Wallet, to: "/stock" as const },
+    { label: "Alertes de rupture", value: `${alertes.length}`, trend: "à traiter", up: false, icon: AlertTriangle, to: "/alertes" as const },
+    { label: "Bons en attente", value: `${articles.filter((a) => a.point !== "Économat" && a.ventes > 0).length}`, trend: "prélèvements suggérés", up: false, icon: ClipboardList, to: "/bons-prelevement" as const },
+    { label: "Commandes en cours", value: `${purchases.filter((p) => p.status === "En cours").length}`, trend: "livraison attendue", up: true, icon: ShoppingCart, to: "/achats-receptions" as const },
   ];
 
   return (
@@ -66,7 +66,7 @@ function DashboardPage() {
           loading ? (
             <Skeleton key={kpi.label} className="h-32 rounded-xl" />
           ) : (
-            <Card key={kpi.label} className="transition-shadow duration-200 hover:shadow-[var(--shadow-soft)]">
+            <Link key={kpi.label} to={kpi.to} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Card className="h-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)]">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -86,7 +86,7 @@ function DashboardPage() {
                   {kpi.trend}
                 </p>
               </CardContent>
-            </Card>
+            </Card></Link>
           ),
         )}
       </div>
@@ -162,9 +162,10 @@ function DashboardPage() {
               </p>
             ) : (
               anomalies.filter((a) => !a.resolved).map((a) => (
-                <div
+                <Link
                   key={a.id}
-                  className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2.5 transition-colors duration-200 hover:bg-muted/60"
+                  to={a.type === "Inventaire" ? "/inventaire" : a.type === "Réception" ? "/achats-receptions" : "/alertes"}
+                  className="flex cursor-pointer items-center justify-between rounded-lg border border-border/70 px-3 py-2.5 transition-all duration-200 hover:border-primary/40 hover:bg-muted/60"
                 >
                   <div>
                     <p className="text-sm font-medium">{a.title}</p>
@@ -173,7 +174,7 @@ function DashboardPage() {
                   <Badge variant="destructive">
                     {a.level}
                   </Badge>
-                </div>
+                </Link>
               ))
             )}
           </CardContent>
