@@ -11,7 +11,7 @@ export type InventoryDraft = { savedAt: string; author: string; counts: Record<s
 export type WithdrawalLine = { articleId: string; requested: number; served: number; observation: string };
 export type WithdrawalRecord = { id: string; date: string; service: "Bar" | "Cuisine"; frequency: "Quotidien" | "Hebdomadaire" | "Mixte"; requester: string; validator: string; lines: WithdrawalLine[] };
 
-type NewArticle = Omit<Article, "id" | "stock" | "achats" | "ventes" | "prelevements" | "prix">;
+export type NewArticle = Omit<Article, "id" | "stock" | "achats" | "ventes" | "prelevements" | "prix">;
 type OperationsValue = {
   articles: Article[]; purchases: Purchase[]; sales: Sale[]; alerts: AlertItem[]; suppliers: Supplier[]; inventoryReports: InventoryReport[]; inventoryDraft: InventoryDraft | null; withdrawals: WithdrawalRecord[];
   addArticle: (article: NewArticle) => void; updateArticle: (id: string, changes: Partial<Article>) => void; removeArticle: (id: string) => void;

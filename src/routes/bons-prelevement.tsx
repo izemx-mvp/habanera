@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useOperations, type WithdrawalRecord } from "@/lib/operations";
+import {type WithdrawalRecord} from "@/lib/operations";import { useOperations } from "@/lib/operations-context";
 import { downloadPdf, type OfficialDocument } from "@/lib/pdf";
 
 export const Route = createFileRoute("/bons-prelevement")({

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ARTICLES, type Article } from "@/lib/habanera-data";
-import { OperationsContext } from "@/lib/operations-context";
-export * from "@/lib/operations-context";
+import { OperationsContext, type NewArticle } from "@/lib/operations-context";
+export type * from "@/lib/operations-context";
 
 const initialPurchases: Purchase[] = [
   { id: "BL-2409", supplier: "Atlas Distribution", articleId: "A-107", quantity: 120, receivedQuantity: 120, orderDate: "2026-09-22", expectedDate: "2026-09-23", receivedDate: "2026-09-23", unitPrice: 6, status: "Reçue" },
