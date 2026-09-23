@@ -8,11 +8,11 @@
 
 ## Évolution traçabilité et documents
 
-- [ ] Passer l’application en thème clair brun et appliquer les couleurs sémantiques
-- [ ] Rendre les KPI et anomalies du tableau de bord actionnables
-- [ ] Enrichir les données partagées, statuts et traces d’audit
-- [ ] Ajouter filtres, détails et documents aux prélèvements, achats et ventes Z
-- [ ] Ajouter démarque, clôture PDF et historique aux inventaires
-- [ ] Ajouter la gestion fournisseurs et les recommandations automatiques
-- [ ] Ajouter le suivi détaillé et l’historique de résolution des alertes
-- [ ] Vérifier les parcours, impressions, téléchargements et vues mobiles
+- [x] Passer l’application en thème clair brun et appliquer les couleurs sémantiques
+- [x] Rendre les KPI et anomalies du tableau de bord actionnables
+- [x] Enrichir les données partagées, statuts et traces d’audit
+- [x] Ajouter filtres, détails et documents aux prélèvements, achats et ventes Z
+- [x] Ajouter démarque, clôture PDF et historique aux inventaires
+- [x] Ajouter la gestion fournisseurs et les recommandations automatiques
+- [x] Ajouter le suivi détaillé et l’historique de résolution des alertes
+- [x] Vérifier les parcours, impressions, téléchargements et vues mobiles
