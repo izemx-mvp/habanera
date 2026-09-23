@@ -71,6 +71,7 @@ type AuthValue = {
   logout: () => void;
   addUser: (input: { nom: string; email: string; role: Role }) => void;
   toggleStatut: (id: string) => void;
+  updateRole: (id: string, role: Role) => void;
   removeUser: (id: string) => void;
 };
 
@@ -112,6 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const updateRole = useCallback((id: string, role: Role) => {
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+  }, []);
+
   const removeUser = useCallback((id: string) => {
     setUsers((prev) => prev.filter((u) => u.id !== id));
   }, []);
@@ -125,9 +130,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       addUser,
       toggleStatut,
+      updateRole,
       removeUser,
     }),
-    [user, users, login, logout, addUser, toggleStatut, removeUser],
+    [user, users, login, logout, addUser, toggleStatut, updateRole, removeUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

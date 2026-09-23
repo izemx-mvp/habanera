@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Boxes, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, ClipboardList, ShoppingCart, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Area,
@@ -15,7 +15,8 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ARTICLES, CONSOMMATION, MOUVEMENTS, formatMAD } from "@/lib/habanera-data";
+import { CONSOMMATION, formatMAD } from "@/lib/habanera-data";
+import { useOperations } from "@/lib/operations";
 
 export const Route = createFileRoute("/tableau-de-bord")({
   head: () => ({
@@ -30,26 +31,29 @@ export const Route = createFileRoute("/tableau-de-bord")({
         property: "og:description",
         content: "Valeur du stock, alertes et mouvements récents de l'économat Habanera.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: DashboardPage,
 });
 
 function DashboardPage() {
+  const { articles, purchases, alerts: anomalies } = useOperations();
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 500);
     return () => clearTimeout(t);
   }, []);
 
-  const valeur = ARTICLES.reduce((sum, a) => sum + a.stock * a.prix, 0);
-  const alertes = ARTICLES.filter((a) => a.stock < a.seuil);
+  const valeur = articles.reduce((sum, a) => sum + a.stock * a.prixAchat, 0);
+  const alertes = articles.filter((a) => a.stock < a.seuil);
 
   const kpis = [
     { label: "Valeur du stock", value: formatMAD(valeur), trend: "+4,2 %", up: true, icon: Wallet },
-    { label: "Références suivies", value: `${ARTICLES.length}`, trend: "+2 ce mois", up: true, icon: Boxes },
-    { label: "Alertes de seuil", value: `${alertes.length}`, trend: "à réapprovisionner", up: false, icon: AlertTriangle },
-    { label: "Mouvements (7 j)", value: `${MOUVEMENTS.length * 7}`, trend: "-3,1 %", up: false, icon: ArrowDownRight },
+    { label: "Alertes de rupture", value: `${alertes.length}`, trend: "à traiter", up: false, icon: AlertTriangle },
+    { label: "Bons en attente", value: `${articles.filter((a) => a.point !== "Économat" && a.ventes > 0).length}`, trend: "prélèvements suggérés", up: false, icon: ClipboardList },
+    { label: "Commandes en cours", value: `${purchases.filter((p) => p.status === "En cours").length}`, trend: "livraison attendue", up: true, icon: ShoppingCart },
   ];
 
   return (
@@ -143,7 +147,7 @@ function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Alertes de seuil</CardTitle>
+            <CardTitle className="text-base">Anomalies détectées</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {loading ? (
@@ -152,24 +156,22 @@ function DashboardPage() {
                 <Skeleton className="h-14 w-full" />
                 <Skeleton className="h-14 w-full" />
               </>
-            ) : alertes.length === 0 ? (
+            ) : anomalies.filter((a) => !a.resolved).length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
                 Aucun article sous le seuil. Tout est en ordre.
               </p>
             ) : (
-              alertes.map((a) => (
+              anomalies.filter((a) => !a.resolved).map((a) => (
                 <div
                   key={a.id}
                   className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2.5 transition-colors duration-200 hover:bg-muted/60"
                 >
                   <div>
-                    <p className="text-sm font-medium">{a.nom}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {a.point} · seuil {a.seuil} {a.unite}
-                    </p>
+                    <p className="text-sm font-medium">{a.title}</p>
+                    <p className="text-xs text-muted-foreground">{a.detail}</p>
                   </div>
                   <Badge variant="destructive">
-                    {a.stock} {a.unite}
+                    {a.level}
                   </Badge>
                 </div>
               ))

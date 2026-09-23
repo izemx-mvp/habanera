@@ -48,6 +48,8 @@ export const Route = createFileRoute("/utilisateurs")({
         name: "description",
         content: "Gérez les accès Administrateur, Économat, Bar et Cuisine de l'établissement Habanera.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:title", content: "Gestion des utilisateurs — Habanera" },
       {
         property: "og:description",
@@ -61,7 +63,7 @@ export const Route = createFileRoute("/utilisateurs")({
 const ROLES: Role[] = ["Administrateur", "Économat", "Bar", "Cuisine"];
 
 function UsersPage() {
-  const { users, user, addUser, toggleStatut, removeUser } = useAuth();
+  const { users, user, addUser, toggleStatut, updateRole, removeUser } = useAuth();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [nom, setNom] = useState("");
@@ -176,6 +178,11 @@ function UsersPage() {
                             <MoreHorizontal className="h-4 w-4" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {ROLES.filter((roleOption) => roleOption !== u.role).map((roleOption) => (
+                              <DropdownMenuItem key={roleOption} disabled={u.id === user?.id} onSelect={() => { updateRole(u.id, roleOption); toast.success(`${u.nom} est désormais ${roleOption}.`); }}>
+                                Donner l’accès {roleOption}
+                              </DropdownMenuItem>
+                            ))}
                             <DropdownMenuItem
                               onSelect={() => {
                                 toggleStatut(u.id);

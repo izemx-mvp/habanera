@@ -24,6 +24,8 @@ export const Route = createFileRoute("/parametres")({
         property: "og:description",
         content: "Ajustez votre profil et les alertes de réapprovisionnement.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SettingsPage,

@@ -28,6 +28,8 @@ export const Route = createFileRoute("/mouvements")({
         property: "og:description",
         content: "Traçabilité complète de chaque entrée, sortie et transfert de l'économat.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MouvementsPage,
