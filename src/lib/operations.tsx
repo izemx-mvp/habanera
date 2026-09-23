@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { ARTICLES, type Article } from "@/lib/habanera-data";
 
 export type PurchaseStatus = "En cours" | "Reçue" | "Reporté" | "Annulé";
@@ -51,12 +51,13 @@ type OperationsValue = {
 const OperationsContext = createContext<OperationsValue | null>(null);
 
 export function OperationsProvider({ children }: { children: ReactNode }) {
+  const withdrawalSequence = useRef(1);
   const [articles, setArticles] = useState(ARTICLES); const [purchases, setPurchases] = useState(initialPurchases); const [sales, setSales] = useState(initialSales);
   const [alerts, setAlerts] = useState(initialAlerts); const [suppliers, setSuppliers] = useState(initialSuppliers); const [inventoryReports, setInventoryReports] = useState<InventoryReport[]>([]); const [inventoryDraft, setInventoryDraft] = useState<InventoryDraft | null>(null); const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const addArticle = (a: NewArticle) => setArticles((p) => [{ ...a, id: `A-${Date.now()}`, stock: a.stockInitial, achats: 0, ventes: 0, prelevements: 0, prix: a.prixAchat }, ...p]);
   const updateArticle = (id: string, changes: Partial<Article>) => setArticles((p) => p.map((a) => a.id === id ? { ...a, ...changes } : a));
   const removeArticle = (id: string) => setArticles((p) => p.filter((a) => a.id !== id));
-  const validateWithdrawal = (record: Omit<WithdrawalRecord, "id">) => { const sequence = withdrawals.length + 1; const compactDate = record.date.replaceAll("-", ""); const created = { ...record, id: `PR-${compactDate}-${String(sequence).padStart(2, "0")}` }; setArticles((previous) => previous.map((article) => { const line = record.lines.find((item) => item.articleId === article.id); return line ? { ...article, prelevements: article.prelevements + line.served, stock: Math.max(0, article.stock - line.served) } : article; })); setWithdrawals((previous) => [created, ...previous]); return created; };
+  const validateWithdrawal = (record: Omit<WithdrawalRecord, "id">) => { const sequence = withdrawalSequence.current; withdrawalSequence.current += 1; const compactDate = record.date.replaceAll("-", ""); const created = { ...record, id: `PR-${compactDate}-${String(sequence).padStart(2, "0")}` }; setArticles((previous) => previous.map((article) => { const line = record.lines.find((item) => item.articleId === article.id); return line ? { ...article, prelevements: article.prelevements + line.served, stock: Math.max(0, article.stock - line.served) } : article; })); setWithdrawals((previous) => [created, ...previous]); return created; };
   const saveInventoryDraft = (counts: Record<string, number>, author: string) => setInventoryDraft({ counts: { ...counts }, author, savedAt: new Date().toLocaleString("fr-FR") });
   const addPurchase = (purchase: Omit<Purchase, "id">) => { const created = { ...purchase, id: `${purchase.status === "Reçue" ? "BL" : "BC"}-${Date.now().toString().slice(-6)}` }; setPurchases((p) => [created, ...p]); if (purchase.status === "Reçue") setArticles((p) => p.map((a) => a.id === purchase.articleId ? { ...a, achats: a.achats + purchase.receivedQuantity, stock: a.stock + purchase.receivedQuantity } : a)); return created; };
   const updatePurchase = (id: string, changes: Partial<Purchase>) => setPurchases((previous) => previous.map((purchase) => { if (purchase.id !== id) return purchase; const next = { ...purchase, ...changes }; if (purchase.status !== "Reçue" && next.status === "Reçue") setArticles((items) => items.map((a) => a.id === purchase.articleId ? { ...a, achats: a.achats + next.receivedQuantity, stock: a.stock + next.receivedQuantity } : a)); return next; }));
