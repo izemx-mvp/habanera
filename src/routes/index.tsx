@@ -1,12 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, Lock, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { useTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,7 +30,6 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const { isAuthenticated, login } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState("salah.bennani@habanera.com");
   const [password, setPassword] = useState("habanera2026");
@@ -60,7 +58,6 @@ function LoginPage() {
 
   return (
     <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-      <Button variant="outline" size="icon" onClick={toggleTheme} className="absolute right-5 top-5 z-20" aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
       <div className="relative hidden flex-col justify-between bg-sidebar p-12 text-sidebar-foreground lg:flex">
         <div
           className="pointer-events-none absolute inset-0 opacity-25"

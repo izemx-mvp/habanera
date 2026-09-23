@@ -6,10 +6,8 @@ import {
   ClipboardCheck,
   FileInput,
   Menu,
-  Moon,
   PackagePlus,
   ReceiptText,
-  Sun,
   Truck,
   X,
   LayoutDashboard,
@@ -30,7 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { initials, useAuth } from "@/lib/auth";
-import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -65,7 +62,6 @@ export function AppShell({
 }) {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -97,7 +93,6 @@ export function AppShell({
             {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
           </div>
           {action}
-          <Button variant="outline" size="icon" onClick={toggleTheme} aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"} title={theme === "dark" ? "Mode clair" : "Mode sombre"}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-3 transition-colors duration-200 hover:bg-secondary">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
