@@ -85,8 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<Profile[]>(SEED_USERS);
   const [space, setSpaceState] = useState<Space>("admin");
   const setSpace = useCallback((next: Space) => {
-    setUser((current) => { if (current && ROLE_SPACES[current.role].includes(next)) setSpaceState(next); return current; });
-  }, []);
+    if (user && ROLE_SPACES[user.role].includes(next)) setSpaceState(next);
+  }, [user]);
 
   const login = useCallback(
     (email: string) => {
