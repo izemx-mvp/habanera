@@ -1,21 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  AlertOctagon,
-  Boxes,
-  ChevronDown,
-  ClipboardCheck,
-  FileInput,
-  Menu,
-  PackagePlus,
-  ReceiptText,
-  Truck,
-  X,
-  LayoutDashboard,
-  LogOut,
-  Settings,
-  Users,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronsUpDown, LogOut, Menu, Settings, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
@@ -28,25 +14,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { initials, useAuth } from "@/lib/auth";
+import { canAccess, ROLE_SPACES, SPACE_HOME, SPACE_LABEL, SPACE_NAV, type Space } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { to: "/tableau-de-bord", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/stock", label: "Produits & Stocks", icon: Boxes },
-  { to: "/bons-prelevement", label: "Bons de Prélèvement", icon: FileInput },
-  { to: "/achats-receptions", label: "Achats & Réceptions", icon: PackagePlus },
-  { to: "/ventes-z", label: "Ventes & Z", icon: ReceiptText },
-  { to: "/inventaire", label: "Inventaire", icon: ClipboardCheck },
-  { to: "/fournisseurs", label: "Fournisseurs & Recommandation", icon: Truck },
-  { to: "/alertes", label: "Alertes & Anomalies", icon: AlertOctagon },
-  { to: "/utilisateurs", label: "Gestion des utilisateurs", icon: Users },
-] as const;
-
-function NavLinks({ pathname, close }: { pathname: string; close?: () => void }) {
-  return <nav className="mt-7 flex flex-1 flex-col gap-1 overflow-y-auto">{NAV.map((item) => {
+function NavLinks({ pathname, space, close }: { pathname: string; space: Space; close?: () => void }) {
+  return <nav className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto">{SPACE_NAV[space].map((item) => {
     const active = pathname === item.to;
     return <Link key={item.to} to={item.to} onClick={close} className={cn("flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors duration-200", active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}><item.icon className="h-4 w-4 shrink-0" strokeWidth={1.75} /><span>{item.label}</span></Link>;
   })}</nav>;
+}
+
+function SpaceSwitch({ close }: { close?: () => void }) {
+  const { user, space, setSpace } = useAuth();
+  const navigate = useNavigate();
+  if (!user) return null;
+  const spaces = ROLE_SPACES[user.role];
+  return <div className="mt-6 px-1">
+    <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-sidebar-foreground/50">Espace</p>
+    <DropdownMenu>
+      <DropdownMenuTrigger aria-label="Changer d'espace" className="mt-2 flex w-full items-center justify-between rounded-md border border-sidebar-foreground/15 bg-sidebar-accent/40 px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent">
+        <span>{SPACE_LABEL[space]}</span><ChevronsUpDown className="h-4 w-4 opacity-60" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        {spaces.map((s) => <DropdownMenuItem key={s} onSelect={() => { setSpace(s); close?.(); navigate({ to: SPACE_HOME[s] }); }} className="justify-between">{SPACE_LABEL[s]}{s === space && <Check className="h-4 w-4" />}</DropdownMenuItem>)}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>;
 }
 
 export function AppShell({
@@ -65,11 +58,14 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  const { space } = useAuth();
+  const allowed = user ? canAccess(user.role, pathname) : false;
   useEffect(() => {
     if (!isAuthenticated) navigate({ to: "/", replace: true });
-  }, [isAuthenticated, navigate]);
+    else if (user && !allowed) { toast.error("Accès non autorisé pour votre profil."); navigate({ to: SPACE_HOME[space], replace: true }); }
+  }, [isAuthenticated, allowed, user, space, navigate]);
 
-  if (!isAuthenticated || !user) return null;
+  if (!isAuthenticated || !user || !allowed) return null;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -81,7 +77,8 @@ export function AppShell({
             Économat · Marrakech
           </p></div><Button variant="ghost" size="icon" className="text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} aria-label="Fermer"><X className="h-5 w-5" /></Button></div>
         </div>
-        <NavLinks pathname={pathname} close={() => setMobileOpen(false)} />
+        <SpaceSwitch close={() => setMobileOpen(false)} />
+        <NavLinks pathname={pathname} space={space} close={() => setMobileOpen(false)} />
         <Button variant="ghost" className="justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={() => { logout(); navigate({ to: "/", replace: true }); }}><LogOut className="mr-3 h-4 w-4" /> Se déconnecter</Button>
       </aside>
 
