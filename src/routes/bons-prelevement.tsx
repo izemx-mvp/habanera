@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Download, Eye, Search } from "lucide-react";
+import { CheckCircle2, Download, Eye, FilePlus2, Plus, Printer, Search, Send, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -8,92 +8,156 @@ import { DocumentPreview } from "@/components/document-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {type WithdrawalRecord} from "@/lib/operations";import { useOperations } from "@/lib/operations-context";
-import { downloadPdf, type OfficialDocument } from "@/lib/pdf";
+import { Textarea } from "@/components/ui/textarea";
+import { requestDocument, requestVariant } from "@/components/workflow-ui";
+import { useAuth } from "@/lib/auth";
+import { useOperations } from "@/lib/operations-context";
+import { downloadPdf, printPdf, type OfficialDocument } from "@/lib/pdf";
+import { can, roleServices, type ServiceName } from "@/lib/permissions";
+import { useWorkflow } from "@/lib/workflow-context";
+import { fmtDate, isLate, PENDING_REQUEST, requestOutcome, type RequestStatus, type StockRequest } from "@/lib/workflow-logic";
 
 export const Route = createFileRoute("/bons-prelevement")({
-  head: () => ({ meta: [{ title: "Bons de prélèvement — Habanera" }, { name: "description", content: "Validation et traçabilité des prélèvements Habanera." }, { property: "og:title", content: "Bons de prélèvement — Habanera" }, { property: "og:description", content: "Préparez les sorties de stock par service." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
-  component: Page,
+  validateSearch: (s: Record<string, unknown>): { statut?: string } => (typeof s["statut"] === "string" ? { statut: s["statut"] } : {}),
+  head: () => ({ meta: [{ title: "Bons de prélèvement — Habanera" }, { name: "description", content: "Création, envoi, traitement et suivi des bons de prélèvement Bar et Cuisine." }, { property: "og:title", content: "Bons de prélèvement — Habanera" }, { property: "og:description", content: "Workflow complet des bons de prélèvement avec PDF." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  component: RequestsPage,
 });
 
-const requester = { Bar: "Youssef Amrani — Chef barman", Cuisine: "Imane Ouazzani — Cheffe de cuisine" } as const;
+const STATUSES: RequestStatus[] = ["Brouillon", "Envoyé", "Reçu", "En cours", "Traité", "Partiellement traité", "Non traité", "Livré", "Clôturé"];
+const PRESETS: Record<string, (r: StockRequest) => boolean> = {
+  attente: (r) => PENDING_REQUEST.includes(r.status),
+  retard: (r) => PENDING_REQUEST.includes(r.status) && isLate(r.date, 24),
+  partiel: (r) => r.status === "Partiellement traité",
+  traites: (r) => ["Traité", "Partiellement traité", "Non traité", "Livré"].includes(r.status),
+};
+const PRESET_LABEL: Record<string, string> = { attente: "En attente (à traiter)", retard: "En retard", partiel: "Partiellement traités", traites: "Traités récemment" };
 
-function Page() {
-  const { articles, validateWithdrawal, withdrawals } = useOperations();
-  const [service, setService] = useState<"Bar" | "Cuisine">("Bar");
-  const [search, setSearch] = useState("");
-  const [frequency, setFrequency] = useState("Tous");
-  const [date, setDate] = useState("2026-09-23");
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [selection, setSelection] = useState<string[]>([]);
-  const [document, setDocument] = useState<OfficialDocument | null>(null);
+function RequestsPage() {
+  const { statut } = Route.useSearch();
+  const { user } = useAuth();
+  const { articles } = useOperations();
+  const wf = useWorkflow();
+  const services = user ? roleServices(user.role) : [];
+  const [tab, setTab] = useState<string>(services.length > 1 ? "Tous" : services[0] ?? "Bar");
+  const [status, setStatus] = useState<string>(statut && PRESETS[statut] ? statut : "Tous");
+  const [q, setQ] = useState("");
+  const [date, setDate] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [doc, setDoc] = useState<OfficialDocument | null>(null);
 
-  const eligible = useMemo(() => articles.filter((article) => article.point === service && article.ventes > 0 && article.nom.toLowerCase().includes(search.toLowerCase()) && (frequency === "Tous" || article.frequence === frequency)), [articles, service, search, frequency]);
-  const recordFor = (articleId: string) => withdrawals.find((record) => record.date === date && record.service === service && record.lines.some((line) => line.articleId === articleId));
-  const pending = eligible.filter((article) => !recordFor(article.id));
-  const serviceRecords = withdrawals.filter((record) => record.service === service);
-  const { paged, page, pageCount, setPage, total } = usePagination(eligible, 8);
-  const selectable = pending.map((article) => article.id);
-  const selected = selection.filter((id) => selectable.includes(id));
-  const allSelected = selectable.length > 0 && selected.length === selectable.length;
+  const rows = useMemo(() => wf.requests.filter((r) => services.includes(r.service) && (tab === "Tous" || r.service === tab)
+    && (status === "Tous" || (PRESETS[status] ? PRESETS[status]!(r) : r.status === status))
+    && (!date || r.date.slice(0, 10) === date)
+    && (r.id.toLowerCase().includes(q.toLowerCase()) || r.requester.toLowerCase().includes(q.toLowerCase()) || r.lines.some((l) => articles.find((a) => a.id === l.articleId)?.nom.toLowerCase().includes(q.toLowerCase())))), [wf.requests, services, tab, status, date, q, articles]);
+  const { paged, page, pageCount, setPage, total } = usePagination(rows, 8);
+  const open = wf.requests.find((r) => r.id === openId) ?? null;
 
-  function makeDocument(record: WithdrawalRecord): OfficialDocument {
-    const formattedDate = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${record.date}T12:00:00`));
-    return { kind: "BON DE PRÉLÈVEMENT", reference: record.id, date: formattedDate, subtitle: "Sortie officielle de l’économat", metadata: [["N° de bon", record.id], ["Date", formattedDate], ["Service demandeur", record.service === "Cuisine" ? "Cuisine / Production chaude" : "Bar"], ["Demandeur", record.requester], ["Validateur", record.validator], ["Fréquence", record.frequency]], columns: ["Code Article", "Désignation", "Qté demandée", "Qté servie", "Unité", "Observations"], rows: record.lines.map((line) => { const article = articles.find((item) => item.id === line.articleId); return [line.articleId, article?.nom ?? "Article", line.requested, line.served, article?.unite ?? "u", line.observation]; }), note: "La signature confirme la remise physique des quantités au service demandeur." };
-  }
-
-  function validateSelection() {
-    if (!selected.length) return;
-    const lines = selected.map((id) => {
-      const article = articles.find((item) => item.id === id);
-      const requested = article ? Math.min(article.stock, article.ventes) : 0;
-      const served = Math.max(0, Math.min(article?.stock ?? 0, quantities[id] ?? requested));
-      return { articleId: id, requested, served, observation: served < requested ? "Stock insuffisant" : service === "Cuisine" ? "Contrôle température OK" : "Quantité contrôlée" };
-    });
-    const frequencies = new Set(selected.map((id) => articles.find((item) => item.id === id)?.frequence));
-    const recordFrequency = frequencies.size === 1 ? [...frequencies][0] ?? "Quotidien" : "Mixte";
-    const created = validateWithdrawal({ date, service, frequency: recordFrequency, requester: requester[service], validator: "Salah Bennani — Responsable des stocks", lines });
-    setSelection([]);
-    setDocument(makeDocument(created));
-    toast.success(`Bon ${created.id} généré avec ${lines.length} article(s).`);
-  }
-
-  return <AppShell title="Bons de Prélèvement" subtitle={`${pending.length} suggestion${pending.length > 1 ? "s" : ""} à valider pour le ${date.split("-").reverse().join("/")}`} action={<Button disabled={!selected.length} onClick={validateSelection}><CheckCircle2 className="mr-2 h-4 w-4" />Valider la sélection{selected.length ? ` (${selected.length})` : ""}</Button>}>
-    <Tabs value={service} onValueChange={(value) => { setService(value as "Bar" | "Cuisine"); setSelection([]); }} className="mb-4"><TabsList className="grid w-full max-w-md grid-cols-2"><TabsTrigger value="Bar">Bar</TabsTrigger><TabsTrigger value="Cuisine">Cuisine</TabsTrigger></TabsList></Tabs>
-    <Card className="mb-4"><CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_190px_190px]">
-      <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder={`Rechercher dans ${service}`} value={search} onChange={(event) => setSearch(event.target.value)} /></div>
-      <Select value={frequency} onValueChange={setFrequency}><SelectTrigger aria-label="Fréquence"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Tous">Fréquence : Tous</SelectItem><SelectItem value="Quotidien">Quotidien</SelectItem><SelectItem value="Hebdomadaire">Hebdomadaire</SelectItem></SelectContent></Select>
-      <Input aria-label="Date du prélèvement" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+  return <AppShell title="Bons de prélèvement" subtitle="Brouillon → Envoyé → Reçu → En cours → Traité → Livré → Clôturé" action={can(user?.role, "bon.create") ? <Button onClick={() => setCreating(true)}><FilePlus2 className="mr-2 h-4 w-4" />Nouveau bon</Button> : undefined}>
+    <Card><CardContent className="p-5">
+      <Tabs value={tab} onValueChange={setTab}><TabsList>{services.length > 1 && <TabsTrigger value="Tous">Tous</TabsTrigger>}{services.map((s) => <TabsTrigger key={s} value={s}>{s}</TabsTrigger>)}</TabsList></Tabs>
+      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_220px_180px]">
+        <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" placeholder="N° de bon, demandeur ou produit" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <Select value={status} onValueChange={setStatus}><SelectTrigger aria-label="Statut"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Tous">Tous les statuts</SelectItem>{Object.keys(PRESETS).map((k) => <SelectItem key={k} value={k}>{PRESET_LABEL[k]}</SelectItem>)}{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+        <Input type="date" aria-label="Date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </div>
+      <div className="mt-5 overflow-x-auto"><Table>
+        <TableHeader><TableRow><TableHead>N° de bon</TableHead><TableHead>Service</TableHead><TableHead>Date</TableHead><TableHead>Demandeur</TableHead><TableHead>Produits</TableHead><TableHead>Statut</TableHead><TableHead className="text-right">Document</TableHead></TableRow></TableHeader>
+        <TableBody>{paged.map((r) => <TableRow key={r.id} className="cursor-pointer" onClick={() => setOpenId(r.id)}>
+          <TableCell className="font-medium">{r.id}{PENDING_REQUEST.includes(r.status) && isLate(r.date, 24) && <Badge variant="destructive" className="ml-2">Retard</Badge>}</TableCell>
+          <TableCell><Badge variant={r.service === "Bar" ? "secondary" : "warning"}>{r.service}</Badge></TableCell>
+          <TableCell>{fmtDate(r.date, true)}</TableCell><TableCell>{r.requester}</TableCell><TableCell>{r.lines.length}</TableCell>
+          <TableCell><Badge variant={requestVariant(r.status)}>{r.status}</Badge></TableCell>
+          <TableCell onClick={(e) => e.stopPropagation()}><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" title="Aperçu PDF" onClick={() => setDoc(requestDocument(r, articles))}><Eye className="h-4 w-4" /></Button><Button size="icon" variant="ghost" title="Télécharger" onClick={() => void downloadPdf(requestDocument(r, articles))}><Download className="h-4 w-4" /></Button><Button size="icon" variant="ghost" title="Imprimer" onClick={() => void printPdf(requestDocument(r, articles))}><Printer className="h-4 w-4" /></Button></div></TableCell>
+        </TableRow>)}</TableBody>
+      </Table></div>
+      {rows.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">Aucun bon pour ces filtres.</p>}
+      <DataPagination page={page} pageCount={pageCount} total={total} onPageChange={setPage} label="bons" />
     </CardContent></Card>
-    <Card><CardContent className="p-5"><div className="overflow-x-auto">
-      <Table>
-        <TableHeader><TableRow>
-          <TableHead className="w-10"><Checkbox aria-label="Tout sélectionner" checked={allSelected} disabled={!selectable.length} onCheckedChange={(checked) => setSelection(checked === true ? selectable : [])} /></TableHead>
-          <TableHead>Produit</TableHead><TableHead>Fréquence</TableHead><TableHead>Stock</TableHead><TableHead>Demandée</TableHead><TableHead>À servir</TableHead><TableHead className="text-right">Bon</TableHead>
-        </TableRow></TableHeader>
-        <TableBody>{paged.map((article) => {
-          const record = recordFor(article.id);
-          const requested = Math.min(article.stock, article.ventes);
-          return <TableRow key={article.id}>
-            <TableCell><Checkbox aria-label={`Sélectionner ${article.nom}`} disabled={Boolean(record)} checked={selection.includes(article.id)} onCheckedChange={(checked) => setSelection((current) => checked === true ? [...current, article.id] : current.filter((id) => id !== article.id))} /></TableCell>
-            <TableCell className="font-medium">{article.nom}<p className="text-xs text-muted-foreground">{article.id} · {service}</p></TableCell>
-            <TableCell><Badge variant="secondary">{article.frequence}</Badge></TableCell>
-            <TableCell>{article.stock} {article.unite}</TableCell>
-            <TableCell>{requested} {article.unite}</TableCell>
-            <TableCell><Input className="w-24" type="number" min={0} max={article.stock} disabled={Boolean(record)} value={record?.lines.find((line) => line.articleId === article.id)?.served ?? quantities[article.id] ?? requested} onChange={(event) => setQuantities((current) => ({ ...current, [article.id]: Number(event.target.value) }))} /></TableCell>
-            <TableCell><div className="flex min-w-48 justify-end gap-2">{record ? <><Badge variant="success"><CheckCircle2 className="mr-1 h-3 w-3" />Validé</Badge><Button size="icon" variant="outline" title="Aperçu du bon" onClick={() => setDocument(makeDocument(record))}><Eye className="h-4 w-4" /></Button><Button size="icon" variant="outline" title="Télécharger le bon" onClick={() => void downloadPdf(makeDocument(record))}><Download className="h-4 w-4" /></Button></> : <span className="text-xs text-muted-foreground">En attente</span>}</div></TableCell>
-          </TableRow>;
-        })}</TableBody>
-      </Table>
-    </div>
-      <DataPagination page={page} pageCount={pageCount} total={total} onPageChange={setPage} label="produits" />
-    </CardContent></Card>
-    {serviceRecords.length > 0 && <section className="mt-6"><h2 className="mb-3 text-lg">Bons générés — {service}</h2><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{serviceRecords.map((record) => <Card key={record.id}><CardContent className="flex items-center justify-between gap-3 p-4"><div><p className="font-medium">{record.id}</p><p className="text-xs text-muted-foreground">{record.service} · {record.frequency} · {record.lines.length} article(s)</p></div><div className="flex gap-1"><Button size="icon" variant="ghost" title="Aperçu" onClick={() => setDocument(makeDocument(record))}><Eye className="h-4 w-4" /></Button><Button size="icon" variant="ghost" title="Télécharger" onClick={() => void downloadPdf(makeDocument(record))}><Download className="h-4 w-4" /></Button></div></CardContent></Card>)}</div></section>}
-    <DocumentPreview document={document} open={Boolean(document)} onOpenChange={(open) => { if (!open) setDocument(null); }} />
+    {open && <RequestSheet key={open.id + open.status} req={open} onClose={() => setOpenId(null)} onPreview={() => setDoc(requestDocument(open, articles))} />}
+    {creating && <CreateDialog services={services} onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); setOpenId(id); }} />}
+    <DocumentPreview document={doc} open={Boolean(doc)} onOpenChange={(o) => { if (!o) setDoc(null); }} />
   </AppShell>;
+}
+
+function RequestSheet({ req, onClose, onPreview }: { req: StockRequest; onClose: () => void; onPreview: () => void }) {
+  const { user } = useAuth();
+  const { articles } = useOperations();
+  const wf = useWorkflow();
+  const [prepared, setPrepared] = useState<Record<string, number>>(() => Object.fromEntries(req.lines.map((l) => { const stock = articles.find((a) => a.id === l.articleId)?.stock ?? 0; return [l.articleId, Math.min(l.requested, stock)]; })));
+  const [busy, setBusy] = useState(false);
+  const role = user?.role;
+  const processing = ["Envoyé", "Reçu", "En cours"].includes(req.status) && can(role, "bon.process");
+  const preview = requestOutcome(req.lines.map((l) => ({ ...l, prepared: prepared[l.articleId] ?? 0 })));
+  const name = (id: string) => articles.find((a) => a.id === id);
+  const act = (status: RequestStatus, message: string) => { wf.setRequestStatus(req.id, status, user!.nom); toast.success(message); };
+
+  function validate() {
+    if (busy) return;
+    setBusy(true);
+    const result = wf.processRequest(req.id, prepared, user!.nom);
+    if (result) toast.success(`${req.id} : ${result.status}. Stocks Économat et ${req.service} mis à jour.`);
+    else { toast.error("Ce bon a déjà été traité."); setBusy(false); }
+  }
+
+  return <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+    <SheetHeader><SheetTitle>{req.id} · {req.service}</SheetTitle><SheetDescription>Demandé par {req.requester} le {fmtDate(req.date, true)}{req.comment ? ` · ${req.comment}` : ""}</SheetDescription></SheetHeader>
+    <div className="mt-5 space-y-5">
+      <div className="flex flex-wrap items-center gap-2"><Badge variant={requestVariant(req.status)}>{req.status}</Badge>{processing && <span className="text-xs text-muted-foreground">Résultat prévu : <strong>{preview}</strong></span>}</div>
+      <div className="overflow-x-auto rounded-lg border"><Table>
+        <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead>Demandé</TableHead>{processing && <TableHead>Disponible</TableHead>}<TableHead>Préparé</TableHead></TableRow></TableHeader>
+        <TableBody>{req.lines.map((l) => { const a = name(l.articleId); const stock = a?.stock ?? 0; return <TableRow key={l.articleId}>
+          <TableCell className="font-medium">{a?.nom ?? l.articleId}<span className="block text-xs text-muted-foreground">{l.articleId}</span></TableCell>
+          <TableCell>{l.requested} {a?.unite}</TableCell>
+          {processing && <TableCell><Badge variant={stock >= l.requested ? "success" : stock > 0 ? "warning" : "destructive"}>{stock}</Badge></TableCell>}
+          <TableCell>{processing ? <Input type="number" min={0} max={stock} className="w-24" value={prepared[l.articleId] ?? 0} onChange={(e) => setPrepared((p) => ({ ...p, [l.articleId]: Math.max(0, Math.min(stock, Number(e.target.value))) }))} aria-label={`Quantité préparée ${a?.nom}`} /> : l.prepared}</TableCell>
+        </TableRow>; })}</TableBody>
+      </Table></div>
+
+      <div className="flex flex-wrap gap-2">
+        {req.status === "Brouillon" && can(role, "bon.create") && <Button onClick={() => act("Envoyé", `${req.id} envoyé à l'économat.`)}><Send className="mr-2 h-4 w-4" />Envoyer à l'économat</Button>}
+        {req.status === "Envoyé" && can(role, "bon.process") && <Button variant="outline" onClick={() => act("Reçu", "Bon marqué comme reçu.")}>Marquer reçu</Button>}
+        {req.status === "Reçu" && can(role, "bon.process") && <Button variant="outline" onClick={() => act("En cours", "Préparation démarrée.")}>Démarrer la préparation</Button>}
+        {processing && <Button disabled={busy} onClick={validate}><CheckCircle2 className="mr-2 h-4 w-4" />Valider le prélèvement</Button>}
+        {["Traité", "Partiellement traité"].includes(req.status) && can(role, "bon.process") && <Button onClick={() => act("Livré", "Bon livré au service.")}>Marquer livré</Button>}
+        {["Livré", "Non traité"].includes(req.status) && can(role, "bon.close") && <Button variant="outline" onClick={() => act("Clôturé", "Bon clôturé.")}>Clôturer</Button>}
+        {!can(role, "bon.process") && PENDING_REQUEST.includes(req.status) && <p className="text-xs text-muted-foreground">En attente de traitement par l'économat.</p>}
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={onPreview}><Eye className="mr-2 h-4 w-4" />Aperçu PDF</Button><Button variant="outline" onClick={() => void downloadPdf(requestDocument(req, articles))}><Download className="mr-2 h-4 w-4" />Télécharger</Button><Button variant="outline" onClick={() => void printPdf(requestDocument(req, articles))}><Printer className="mr-2 h-4 w-4" />Imprimer</Button></div>
+
+      <section><p className="text-xs uppercase text-muted-foreground">Historique</p><ol className="mt-2 space-y-2 border-l-2 border-border pl-4 text-sm">{req.history.map((h, i) => <li key={i}><span className="font-medium">{h.status}</span> · {h.user} <span className="text-xs text-muted-foreground">{fmtDate(h.date, true)}</span></li>)}</ol></section>
+    </div>
+  </SheetContent></Sheet>;
+}
+
+function CreateDialog({ services, onClose, onCreated }: { services: ServiceName[]; onClose: () => void; onCreated: (id: string) => void }) {
+  const { user } = useAuth();
+  const { articles } = useOperations();
+  const wf = useWorkflow();
+  const [service, setService] = useState<ServiceName>(services[0] ?? "Bar");
+  const [lines, setLines] = useState<Array<{ articleId: string; requested: number }>>([]);
+  const [articleId, setArticleId] = useState("");
+  const [qty, setQty] = useState(1);
+  const [comment, setComment] = useState("");
+  const options = articles.filter((a) => wf.serviceRefs[a.id]?.[service] !== undefined || a.point === service);
+  function add() { if (!articleId || qty <= 0) return; setLines((p) => [...p.filter((l) => l.articleId !== articleId), { articleId, requested: qty }]); setArticleId(""); setQty(1); }
+  function save(send: boolean) { if (!lines.length || !user) { toast.error("Ajoutez au moins un produit."); return; } const r = wf.createRequest({ service, lines, comment, user: user.nom, send }); toast.success(send ? `${r.id} envoyé à l'économat.` : `${r.id} enregistré en brouillon.`); onCreated(r.id); }
+  return <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}><DialogContent className="max-w-xl">
+    <DialogHeader><DialogTitle>Nouveau bon de prélèvement</DialogTitle><DialogDescription>Demande de produits à l'économat.</DialogDescription></DialogHeader>
+    <div className="space-y-4">
+      <div><Label>Service</Label><Select value={service} onValueChange={(v) => { setService(v as ServiceName); setLines([]); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{services.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+      <div className="flex gap-2"><Select value={articleId} onValueChange={setArticleId}><SelectTrigger className="flex-1" aria-label="Produit"><SelectValue placeholder="Choisir un produit" /></SelectTrigger><SelectContent>{options.map((a) => <SelectItem key={a.id} value={a.id}>{a.nom} ({a.unite})</SelectItem>)}</SelectContent></Select><Input type="number" min={1} className="w-24" value={qty} onChange={(e) => setQty(Number(e.target.value))} aria-label="Quantité" /><Button variant="outline" onClick={add}><Plus className="h-4 w-4" /></Button></div>
+      <ul className="divide-y rounded-lg border text-sm">{lines.map((l) => { const a = articles.find((x) => x.id === l.articleId); return <li key={l.articleId} className="flex items-center justify-between px-3 py-2"><span>{a?.nom}</span><span className="flex items-center gap-2">{l.requested} {a?.unite}<Button size="icon" variant="ghost" onClick={() => setLines((p) => p.filter((x) => x.articleId !== l.articleId))}><Trash2 className="h-4 w-4 text-destructive" /></Button></span></li>; })}{!lines.length && <li className="px-3 py-4 text-center text-muted-foreground">Aucun produit ajouté.</li>}</ul>
+      <div><Label>Commentaire</Label><Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Optionnel" /></div>
+    </div>
+    <DialogFooter><Button variant="outline" onClick={() => save(false)}>Enregistrer en brouillon</Button><Button onClick={() => save(true)}><Send className="mr-2 h-4 w-4" />Envoyer</Button></DialogFooter>
+  </DialogContent></Dialog>;
 }
