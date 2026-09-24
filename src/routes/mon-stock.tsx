@@ -20,7 +20,7 @@ import { useWorkflow } from "@/lib/workflow-context";
 import { fmtDate, serviceLevel } from "@/lib/workflow-logic";
 
 export const Route = createFileRoute("/mon-stock")({
-  validateSearch: (s: Record<string, unknown>): { filtre?: string } => (typeof s.filtre === "string" ? { filtre: s.filtre } : {}),
+  validateSearch: (s: Record<string, unknown>): { filtre?: string } => (typeof s["filtre"] === "string" ? { filtre: s["filtre"] } : {}),
   head: () => ({ meta: [{ title: "Mon Stock — Habanera" }, { name: "description", content: "Stock du service comparé au stock de référence, produits à prélever." }, { property: "og:title", content: "Mon Stock — Habanera" }, { property: "og:description", content: "Stock Bar et Cuisine vs stock de référence." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: MyStock,
 });

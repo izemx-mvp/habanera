@@ -17,6 +17,7 @@ import { Route as CuisineBarRouteImport } from './routes/cuisine-bar'
 import { Route as EconomatRouteImport } from './routes/economat'
 import { Route as FournisseursRouteImport } from './routes/fournisseurs'
 import { Route as InventaireRouteImport } from './routes/inventaire'
+import { Route as MonStockRouteImport } from './routes/mon-stock'
 import { Route as MouvementsRouteImport } from './routes/mouvements'
 import { Route as ParametresRouteImport } from './routes/parametres'
 import { Route as StockRouteImport } from './routes/stock'
@@ -64,6 +65,11 @@ const InventaireRoute = InventaireRouteImport.update({
   path: '/inventaire',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MonStockRoute = MonStockRouteImport.update({
+  id: '/mon-stock',
+  path: '/mon-stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MouvementsRoute = MouvementsRouteImport.update({
   id: '/mouvements',
   path: '/mouvements',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
+  '/mon-stock': typeof MonStockRoute
   '/mouvements': typeof MouvementsRoute
   '/parametres': typeof ParametresRoute
   '/stock': typeof StockRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
+  '/mon-stock': typeof MonStockRoute
   '/mouvements': typeof MouvementsRoute
   '/parametres': typeof ParametresRoute
   '/stock': typeof StockRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
+  '/mon-stock': typeof MonStockRoute
   '/mouvements': typeof MouvementsRoute
   '/parametres': typeof ParametresRoute
   '/stock': typeof StockRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/economat'
     | '/fournisseurs'
     | '/inventaire'
+    | '/mon-stock'
     | '/mouvements'
     | '/parametres'
     | '/stock'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/economat'
     | '/fournisseurs'
     | '/inventaire'
+    | '/mon-stock'
     | '/mouvements'
     | '/parametres'
     | '/stock'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/economat'
     | '/fournisseurs'
     | '/inventaire'
+    | '/mon-stock'
     | '/mouvements'
     | '/parametres'
     | '/stock'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   EconomatRoute: typeof EconomatRoute
   FournisseursRoute: typeof FournisseursRoute
   InventaireRoute: typeof InventaireRoute
+  MonStockRoute: typeof MonStockRoute
   MouvementsRoute: typeof MouvementsRoute
   ParametresRoute: typeof ParametresRoute
   StockRoute: typeof StockRoute
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventaireRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mon-stock': {
+      id: '/mon-stock'
+      path: '/mon-stock'
+      fullPath: '/mon-stock'
+      preLoaderRoute: typeof MonStockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mouvements': {
       id: '/mouvements'
       path: '/mouvements'
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   EconomatRoute: EconomatRoute,
   FournisseursRoute: FournisseursRoute,
   InventaireRoute: InventaireRoute,
+  MonStockRoute: MonStockRoute,
   MouvementsRoute: MouvementsRoute,
   ParametresRoute: ParametresRoute,
   StockRoute: StockRoute,
