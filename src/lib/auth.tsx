@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
-export type Role = "Administrateur" | "Économat" | "Bar" | "Cuisine";
+import { ROLE_SPACES, type Role, type Space } from "@/lib/permissions";
+export type { Role } from "@/lib/permissions";
 
 export type Profile = {
   id: string;
@@ -67,7 +68,9 @@ type AuthValue = {
   isAuthenticated: boolean;
   user: Profile | null;
   users: Profile[];
-  login: (email: string) => void;
+  login: (email: string) => Profile;
+  space: Space;
+  setSpace: (space: Space) => void;
   logout: () => void;
   addUser: (input: { nom: string; email: string; role: Role }) => void;
   toggleStatut: (id: string) => void;
@@ -80,11 +83,18 @@ const AuthContext = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [users, setUsers] = useState<Profile[]>(SEED_USERS);
+  const [space, setSpaceState] = useState<Space>("admin");
+  const setSpace = useCallback((next: Space) => {
+    setUser((current) => { if (current && ROLE_SPACES[current.role].includes(next)) setSpaceState(next); return current; });
+  }, []);
 
   const login = useCallback(
     (email: string) => {
       const found = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-      setUser(found ?? users[0]!);
+      const profile = found && found.statut === "Actif" ? found : users[0]!;
+      setUser(profile);
+      setSpaceState(ROLE_SPACES[profile.role][0]!);
+      return profile;
     },
     [users],
   );
@@ -127,13 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       users,
       login,
+      space,
+      setSpace,
       logout,
       addUser,
       toggleStatut,
       updateRole,
       removeUser,
     }),
-    [user, users, login, logout, addUser, toggleStatut, updateRole, removeUser],
+    [user, users, space, setSpace, login, logout, addUser, toggleStatut, updateRole, removeUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
