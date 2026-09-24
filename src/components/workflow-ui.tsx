@@ -11,11 +11,11 @@ import { fmtDate, type ActivityItem, type Anomaly, type LiveAlert, type OrderSta
 type Variant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "elevated";
 
 // Lien interne typé de façon souple (chemins issus des tableaux de configuration)
-export function AppLink({ to, search, className, children }: { to: string; search?: Record<string, string>; className?: string; children: ReactNode }) {
+export function AppLink({ to, search, className, children }: { to: string; search?: Record<string, string> | undefined; className?: string | undefined; children: ReactNode }) {
   return <Link to={to as "/"} search={search as never} className={className}>{children}</Link>;
 }
 
-export function KpiCard({ label, value, hint, to, search, icon: Icon, tone = "default" }: { label: string; value: string | number; hint?: string; to: string; search?: Record<string, string>; icon: LucideIcon; tone?: "default" | "danger" | "warning" | "success" }) {
+export function KpiCard({ label, value, hint, to, search, icon: Icon, tone = "default" }: { label: string; value: string | number; hint?: string | undefined; to: string; search?: Record<string, string> | undefined; icon: LucideIcon; tone?: "default" | "danger" | "warning" | "success" }) {
   const toneClass = { default: "text-primary", danger: "text-destructive", warning: "text-warning", success: "text-success" }[tone];
   return <AppLink to={to} search={search} className="group block">
     <Card className="h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md">
@@ -76,6 +76,6 @@ export function requestDocument(req: StockRequest, articles: Article[]): Officia
     metadata: [["N° de bon", req.id], ["Date", new Date(req.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })], ["Service", req.service], ["Demandeur", req.requester], ["Validateur", req.processedBy ?? "—"], ["Statut", req.status]],
     columns: ["Code", "Désignation", "Qté demandée", "Qté traitée", "Unité"],
     rows: req.lines.map((l) => [l.articleId, find(l.articleId)?.nom ?? l.articleId, l.requested, l.prepared, find(l.articleId)?.unite ?? ""]),
-    note: req.comment ? `Commentaire : ${req.comment}` : undefined,
+    ...(req.comment ? { note: `Commentaire : ${req.comment}` } : {}),
   };
 }

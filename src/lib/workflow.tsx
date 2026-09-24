@@ -29,7 +29,7 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
   const ordersRef = useRef(orders); ordersRef.current = orders;
   useEffect(() => { ecoOverride.current.clear(); }, [ops.articles]);
 
-  const log = useCallback((user: string, action: string, reference: string, location?: Location) => setActivity((p) => [{ id: uid("ACT"), date: TODAY(), user, action, reference, location }, ...p]), []);
+  const log = useCallback((user: string, action: string, reference: string, location?: Location) => setActivity((p) => [{ id: uid("ACT"), date: TODAY(), user, action, reference, ...(location ? { location } : {}) }, ...p]), []);
   const notify = useCallback((audience: NotificationItem["audience"], title: string, detail: string, link: string) => setNotifications((p) => [{ id: uid("N"), date: TODAY(), audience, title, detail, link, read: false }, ...p]), []);
 
   /** Service unique de mouvements de stock. Retourne false si l'opération a déjà été appliquée. */
