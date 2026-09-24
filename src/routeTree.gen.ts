@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AchatsReceptionsRouteImport } from './routes/achats-receptions'
 import { Route as AlertesRouteImport } from './routes/alertes'
+import { Route as ApprovisionnementRouteImport } from './routes/approvisionnement'
 import { Route as BonsPrelevementRouteImport } from './routes/bons-prelevement'
 import { Route as CuisineBarRouteImport } from './routes/cuisine-bar'
 import { Route as EconomatRouteImport } from './routes/economat'
@@ -38,6 +39,11 @@ const AchatsReceptionsRoute = AchatsReceptionsRouteImport.update({
 const AlertesRoute = AlertesRouteImport.update({
   id: '/alertes',
   path: '/alertes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApprovisionnementRoute = ApprovisionnementRouteImport.update({
+  id: '/approvisionnement',
+  path: '/approvisionnement',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BonsPrelevementRoute = BonsPrelevementRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
+  '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
   '/cuisine-bar': typeof CuisineBarRoute
   '/economat': typeof EconomatRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
+  '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
   '/cuisine-bar': typeof CuisineBarRoute
   '/economat': typeof EconomatRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
+  '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
   '/cuisine-bar': typeof CuisineBarRoute
   '/economat': typeof EconomatRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/achats-receptions'
     | '/alertes'
+    | '/approvisionnement'
     | '/bons-prelevement'
     | '/cuisine-bar'
     | '/economat'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/achats-receptions'
     | '/alertes'
+    | '/approvisionnement'
     | '/bons-prelevement'
     | '/cuisine-bar'
     | '/economat'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/achats-receptions'
     | '/alertes'
+    | '/approvisionnement'
     | '/bons-prelevement'
     | '/cuisine-bar'
     | '/economat'
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AchatsReceptionsRoute: typeof AchatsReceptionsRoute
   AlertesRoute: typeof AlertesRoute
+  ApprovisionnementRoute: typeof ApprovisionnementRoute
   BonsPrelevementRoute: typeof BonsPrelevementRoute
   CuisineBarRoute: typeof CuisineBarRoute
   EconomatRoute: typeof EconomatRoute
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/alertes'
       fullPath: '/alertes'
       preLoaderRoute: typeof AlertesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/approvisionnement': {
+      id: '/approvisionnement'
+      path: '/approvisionnement'
+      fullPath: '/approvisionnement'
+      preLoaderRoute: typeof ApprovisionnementRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bons-prelevement': {
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AchatsReceptionsRoute: AchatsReceptionsRoute,
   AlertesRoute: AlertesRoute,
+  ApprovisionnementRoute: ApprovisionnementRoute,
   BonsPrelevementRoute: BonsPrelevementRoute,
   CuisineBarRoute: CuisineBarRoute,
   EconomatRoute: EconomatRoute,

@@ -28,7 +28,7 @@ export const Route = createFileRoute("/approvisionnement")({
   component: SupplyPage,
 });
 
-export function pickSupplier(article: Article, suppliers: Supplier[]) {
+function pickSupplier(article: Article, suppliers: Supplier[]) {
   const active = suppliers.filter((s) => s.active);
   const main = active.find((s) => s.id === article.fournisseurId);
   if (main) return main;
