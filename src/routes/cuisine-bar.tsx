@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, Bell, Boxes, CheckCircle2, ClipboardList, PackageX, ReceiptText } from "lucide-react";
-import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { ActivityList, AlertList, KpiCard, ScopeSelect } from "@/components/workflow-ui";
 import { formatMAD } from "@/lib/habanera-data";
-import { useAuth } from "@/lib/auth";
 import { useOperations } from "@/lib/operations-context";
-import { roleServices, type ServiceName } from "@/lib/permissions";
+import type { ServiceName } from "@/lib/permissions";
+import { useServiceChoice } from "@/lib/use-service-choice";
 import { useInsights } from "@/lib/use-insights";
 import { useWorkflow } from "@/lib/workflow-context";
 import { inPeriod, PENDING_REQUEST, serviceLevel } from "@/lib/workflow-logic";
@@ -15,13 +14,6 @@ export const Route = createFileRoute("/cuisine-bar")({
   head: () => ({ meta: [{ title: "Dashboard Cuisine & Bar — Habanera" }, { name: "description", content: "Stock du service, bons de prélèvement et ventes du jour pour la cuisine et le bar." }, { property: "og:title", content: "Dashboard Cuisine & Bar — Habanera" }, { property: "og:description", content: "Suivi opérationnel du service Habanera." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: ServiceDashboard,
 });
-
-export function useServiceChoice() {
-  const { user } = useAuth();
-  const allowed = user ? roleServices(user.role) : (["Bar"] as ServiceName[]);
-  const [service, setService] = useState<ServiceName>(allowed[0]!);
-  return { service: allowed.includes(service) ? service : allowed[0]!, setService, allowed };
-}
 
 function ServiceDashboard() {
   const { articles } = useOperations();

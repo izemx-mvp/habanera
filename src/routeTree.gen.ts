@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AchatsReceptionsRouteImport } from './routes/achats-receptions'
 import { Route as AlertesRouteImport } from './routes/alertes'
 import { Route as BonsPrelevementRouteImport } from './routes/bons-prelevement'
+import { Route as CuisineBarRouteImport } from './routes/cuisine-bar'
+import { Route as EconomatRouteImport } from './routes/economat'
 import { Route as FournisseursRouteImport } from './routes/fournisseurs'
 import { Route as InventaireRouteImport } from './routes/inventaire'
 import { Route as MouvementsRouteImport } from './routes/mouvements'
@@ -40,6 +42,16 @@ const AlertesRoute = AlertesRouteImport.update({
 const BonsPrelevementRoute = BonsPrelevementRouteImport.update({
   id: '/bons-prelevement',
   path: '/bons-prelevement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuisineBarRoute = CuisineBarRouteImport.update({
+  id: '/cuisine-bar',
+  path: '/cuisine-bar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EconomatRoute = EconomatRouteImport.update({
+  id: '/economat',
+  path: '/economat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FournisseursRoute = FournisseursRouteImport.update({
@@ -88,6 +100,8 @@ export interface FileRoutesByFullPath {
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/cuisine-bar': typeof CuisineBarRoute
+  '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
   '/mouvements': typeof MouvementsRoute
@@ -102,6 +116,8 @@ export interface FileRoutesByTo {
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/cuisine-bar': typeof CuisineBarRoute
+  '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
   '/mouvements': typeof MouvementsRoute
@@ -117,6 +133,8 @@ export interface FileRoutesById {
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/cuisine-bar': typeof CuisineBarRoute
+  '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
   '/mouvements': typeof MouvementsRoute
@@ -133,6 +151,8 @@ export interface FileRouteTypes {
     | '/achats-receptions'
     | '/alertes'
     | '/bons-prelevement'
+    | '/cuisine-bar'
+    | '/economat'
     | '/fournisseurs'
     | '/inventaire'
     | '/mouvements'
@@ -147,6 +167,8 @@ export interface FileRouteTypes {
     | '/achats-receptions'
     | '/alertes'
     | '/bons-prelevement'
+    | '/cuisine-bar'
+    | '/economat'
     | '/fournisseurs'
     | '/inventaire'
     | '/mouvements'
@@ -161,6 +183,8 @@ export interface FileRouteTypes {
     | '/achats-receptions'
     | '/alertes'
     | '/bons-prelevement'
+    | '/cuisine-bar'
+    | '/economat'
     | '/fournisseurs'
     | '/inventaire'
     | '/mouvements'
@@ -176,6 +200,8 @@ export interface RootRouteChildren {
   AchatsReceptionsRoute: typeof AchatsReceptionsRoute
   AlertesRoute: typeof AlertesRoute
   BonsPrelevementRoute: typeof BonsPrelevementRoute
+  CuisineBarRoute: typeof CuisineBarRoute
+  EconomatRoute: typeof EconomatRoute
   FournisseursRoute: typeof FournisseursRoute
   InventaireRoute: typeof InventaireRoute
   MouvementsRoute: typeof MouvementsRoute
@@ -214,6 +240,20 @@ declare module '@tanstack/react-router' {
       path: '/bons-prelevement'
       fullPath: '/bons-prelevement'
       preLoaderRoute: typeof BonsPrelevementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cuisine-bar': {
+      id: '/cuisine-bar'
+      path: '/cuisine-bar'
+      fullPath: '/cuisine-bar'
+      preLoaderRoute: typeof CuisineBarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/economat': {
+      id: '/economat'
+      path: '/economat'
+      fullPath: '/economat'
+      preLoaderRoute: typeof EconomatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fournisseurs': {
@@ -280,6 +320,8 @@ const rootRouteChildren: RootRouteChildren = {
   AchatsReceptionsRoute: AchatsReceptionsRoute,
   AlertesRoute: AlertesRoute,
   BonsPrelevementRoute: BonsPrelevementRoute,
+  CuisineBarRoute: CuisineBarRoute,
+  EconomatRoute: EconomatRoute,
   FournisseursRoute: FournisseursRoute,
   InventaireRoute: InventaireRoute,
   MouvementsRoute: MouvementsRoute,
