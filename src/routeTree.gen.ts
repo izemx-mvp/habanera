@@ -14,6 +14,7 @@ import { Route as AchatsReceptionsRouteImport } from './routes/achats-receptions
 import { Route as AlertesRouteImport } from './routes/alertes'
 import { Route as ApprovisionnementRouteImport } from './routes/approvisionnement'
 import { Route as BonsPrelevementRouteImport } from './routes/bons-prelevement'
+import { Route as ConfigurationRouteImport } from './routes/configuration'
 import { Route as CuisineBarRouteImport } from './routes/cuisine-bar'
 import { Route as EconomatRouteImport } from './routes/economat'
 import { Route as FournisseursRouteImport } from './routes/fournisseurs'
@@ -23,6 +24,7 @@ import { Route as MouvementsRouteImport } from './routes/mouvements'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as ParametresRouteImport } from './routes/parametres'
 import { Route as ReceptionsRouteImport } from './routes/receptions'
+import { Route as ReportingRouteImport } from './routes/reporting'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as TableauDeBordRouteImport } from './routes/tableau-de-bord'
 import { Route as UtilisateursRouteImport } from './routes/utilisateurs'
@@ -52,6 +54,11 @@ const ApprovisionnementRoute = ApprovisionnementRouteImport.update({
 const BonsPrelevementRoute = BonsPrelevementRouteImport.update({
   id: '/bons-prelevement',
   path: '/bons-prelevement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigurationRoute = ConfigurationRouteImport.update({
+  id: '/configuration',
+  path: '/configuration',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CuisineBarRoute = CuisineBarRouteImport.update({
@@ -99,6 +106,11 @@ const ReceptionsRoute = ReceptionsRouteImport.update({
   path: '/receptions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportingRoute = ReportingRouteImport.update({
+  id: '/reporting',
+  path: '/reporting',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StockRoute = StockRouteImport.update({
   id: '/stock',
   path: '/stock',
@@ -131,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/alertes': typeof AlertesRoute
   '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/configuration': typeof ConfigurationRoute
   '/cuisine-bar': typeof CuisineBarRoute
   '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
@@ -140,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/parametres': typeof ParametresRoute
   '/receptions': typeof ReceptionsRoute
+  '/reporting': typeof ReportingRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
@@ -152,6 +166,7 @@ export interface FileRoutesByTo {
   '/alertes': typeof AlertesRoute
   '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/configuration': typeof ConfigurationRoute
   '/cuisine-bar': typeof CuisineBarRoute
   '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
@@ -161,6 +176,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/parametres': typeof ParametresRoute
   '/receptions': typeof ReceptionsRoute
+  '/reporting': typeof ReportingRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
@@ -174,6 +190,7 @@ export interface FileRoutesById {
   '/alertes': typeof AlertesRoute
   '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/configuration': typeof ConfigurationRoute
   '/cuisine-bar': typeof CuisineBarRoute
   '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
@@ -183,6 +200,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/parametres': typeof ParametresRoute
   '/receptions': typeof ReceptionsRoute
+  '/reporting': typeof ReportingRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
@@ -197,6 +215,7 @@ export interface FileRouteTypes {
     | '/alertes'
     | '/approvisionnement'
     | '/bons-prelevement'
+    | '/configuration'
     | '/cuisine-bar'
     | '/economat'
     | '/fournisseurs'
@@ -206,6 +225,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/parametres'
     | '/receptions'
+    | '/reporting'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
@@ -218,6 +238,7 @@ export interface FileRouteTypes {
     | '/alertes'
     | '/approvisionnement'
     | '/bons-prelevement'
+    | '/configuration'
     | '/cuisine-bar'
     | '/economat'
     | '/fournisseurs'
@@ -227,6 +248,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/parametres'
     | '/receptions'
+    | '/reporting'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
@@ -239,6 +261,7 @@ export interface FileRouteTypes {
     | '/alertes'
     | '/approvisionnement'
     | '/bons-prelevement'
+    | '/configuration'
     | '/cuisine-bar'
     | '/economat'
     | '/fournisseurs'
@@ -248,6 +271,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/parametres'
     | '/receptions'
+    | '/reporting'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
@@ -261,6 +285,7 @@ export interface RootRouteChildren {
   AlertesRoute: typeof AlertesRoute
   ApprovisionnementRoute: typeof ApprovisionnementRoute
   BonsPrelevementRoute: typeof BonsPrelevementRoute
+  ConfigurationRoute: typeof ConfigurationRoute
   CuisineBarRoute: typeof CuisineBarRoute
   EconomatRoute: typeof EconomatRoute
   FournisseursRoute: typeof FournisseursRoute
@@ -270,6 +295,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   ParametresRoute: typeof ParametresRoute
   ReceptionsRoute: typeof ReceptionsRoute
+  ReportingRoute: typeof ReportingRoute
   StockRoute: typeof StockRoute
   TableauDeBordRoute: typeof TableauDeBordRoute
   UtilisateursRoute: typeof UtilisateursRoute
@@ -312,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/bons-prelevement'
       fullPath: '/bons-prelevement'
       preLoaderRoute: typeof BonsPrelevementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuration': {
+      id: '/configuration'
+      path: '/configuration'
+      fullPath: '/configuration'
+      preLoaderRoute: typeof ConfigurationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cuisine-bar': {
@@ -377,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReceptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reporting': {
+      id: '/reporting'
+      path: '/reporting'
+      fullPath: '/reporting'
+      preLoaderRoute: typeof ReportingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stock': {
       id: '/stock'
       path: '/stock'
@@ -421,6 +461,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlertesRoute: AlertesRoute,
   ApprovisionnementRoute: ApprovisionnementRoute,
   BonsPrelevementRoute: BonsPrelevementRoute,
+  ConfigurationRoute: ConfigurationRoute,
   CuisineBarRoute: CuisineBarRoute,
   EconomatRoute: EconomatRoute,
   FournisseursRoute: FournisseursRoute,
@@ -430,6 +471,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   ParametresRoute: ParametresRoute,
   ReceptionsRoute: ReceptionsRoute,
+  ReportingRoute: ReportingRoute,
   StockRoute: StockRoute,
   TableauDeBordRoute: TableauDeBordRoute,
   UtilisateursRoute: UtilisateursRoute,

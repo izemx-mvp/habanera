@@ -14,8 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Article, type Frequence } from "@/lib/habanera-data";
 import { useOperations } from "@/lib/operations-context";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/permissions";
+import { stockCible, isActive } from "@/lib/habanera-data";
 
-export const Route = createFileRoute("/stock")({ head: () => ({ meta: [{ title: "Produits & Stocks — Habanera" }, { name: "description", content: "Recherche, mouvements et stock actuel de chaque produit Habanera." }, { property: "og:title", content: "Produits & Stocks — Habanera" }, { property: "og:description", content: "Consultez et gérez instantanément les stocks de l'économat." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Page });
+export const Route = createFileRoute("/stock")({ validateSearch: (s: Record<string, unknown>): { filtre?: string } => (typeof s["filtre"] === "string" ? { filtre: s["filtre"] } : {}), head: () => ({ meta: [{ title: "Produits & Stocks — Habanera" }, { name: "description", content: "Recherche, mouvements et stock actuel de chaque produit Habanera." }, { property: "og:title", content: "Produits & Stocks — Habanera" }, { property: "og:description", content: "Consultez et gérez instantanément les stocks de l'économat." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Page });
 
 const categories = ["Spiritueux", "Vins", "Épicerie", "Frais", "Boissons", "Verrerie", "Produits secs"] as const;
 const emptyForm = { nom: "", categorie: "Épicerie" as Article["categorie"], unite: "kg", stockInitial: 0, seuil: 0, prixAchat: 0, point: "Bar" as Article["point"], frequence: "Quotidien" as Frequence };
@@ -26,12 +29,16 @@ function Page() {
   const [category, setCategory] = useState("Toutes");
   const [service, setService] = useState("Tous");
   const [frequency, setFrequency] = useState("Toutes");
+  const { filtre } = Route.useSearch();
+  const [level, setLevel] = useState(filtre === "sous-seuil" ? "sous-seuil" : filtre === "rupture" ? "rupture" : "Tous");
+  const { user } = useAuth();
+  const canEdit = can(user?.role, "produit.edit");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Article | null>(null);
   const [mode, setMode] = useState<"add" | "edit" | "view">("add");
   const [form, setForm] = useState(emptyForm);
 
-  const rows = useMemo(() => articles.filter((a) => (category === "Toutes" || a.categorie === category) && (service === "Tous" || a.point === service) && (frequency === "Toutes" || a.frequence === frequency) && (a.nom.toLowerCase().includes(q.toLowerCase()) || a.categorie.toLowerCase().includes(q.toLowerCase()))), [articles, q, category, service, frequency]);
+  const rows = useMemo(() => articles.filter((a) => (category === "Toutes" || a.categorie === category) && (service === "Tous" || a.point === service) && (frequency === "Toutes" || a.frequence === frequency) && (level === "Tous" || (level === "rupture" ? isActive(a) && a.stock <= 0 : level === "inactif" ? !isActive(a) : isActive(a) && a.stock <= a.seuil)) && (a.nom.toLowerCase().includes(q.toLowerCase()) || a.categorie.toLowerCase().includes(q.toLowerCase()))), [articles, q, category, service, frequency, level]);
   const { paged, page, pageCount, setPage, total } = usePagination(rows, 8);
 
   function launch(next: "add" | "edit" | "view", a?: Article) {
@@ -42,23 +49,24 @@ function Page() {
   }
   function save() {
     if (form.nom.trim().length < 2 || form.stockInitial < 0) return;
-    if (mode === "edit" && selected) updateArticle(selected.id, { ...form, stock: form.stockInitial, prix: form.prixAchat });
+    if (mode === "edit" && selected) updateArticle(selected.id, { ...form, prix: form.prixAchat });
     else addArticle(form);
     setOpen(false);
     toast.success(mode === "edit" ? "Produit mis à jour." : "Produit ajouté au stock.");
   }
 
-  return <AppShell title="Produits & Stocks" subtitle={`${articles.length} références · Stock J = Stock J-1 + Achats - Ventes - Prélèvements`} action={<Button onClick={() => launch("add")}><PackagePlus className="mr-2 h-4 w-4" />Ajouter un produit</Button>}>
+  return <AppShell title="Produits & Stocks" subtitle={`${articles.length} références · Stock J = Stock J-1 + Achats - Ventes - Prélèvements`} action={canEdit && <Button onClick={() => launch("add")}><PackagePlus className="mr-2 h-4 w-4" />Ajouter un produit</Button>}>
     <Card><CardContent className="p-5">
-      <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_180px]">
+      <div className="grid gap-3 md:grid-cols-[1fr_170px_170px_170px_170px]">
         <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" placeholder="Quel produit cherchez-vous ?" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <Select value={category} onValueChange={setCategory}><SelectTrigger aria-label="Catégorie"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Toutes">Toutes les catégories</SelectItem>{categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
         <Select value={service} onValueChange={setService}><SelectTrigger aria-label="Service"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Tous">Bar et Cuisine</SelectItem><SelectItem value="Bar">Produits de Bar</SelectItem><SelectItem value="Cuisine">Produits de Cuisine</SelectItem></SelectContent></Select>
         <Select value={frequency} onValueChange={setFrequency}><SelectTrigger aria-label="Fréquence"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Toutes">Toutes fréquences</SelectItem><SelectItem value="Quotidien">Quotidien</SelectItem><SelectItem value="Hebdomadaire">Hebdomadaire</SelectItem></SelectContent></Select>
+        <Select value={level} onValueChange={setLevel}><SelectTrigger aria-label="Niveau de stock"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Tous">Tous niveaux</SelectItem><SelectItem value="sous-seuil">Sous seuil</SelectItem><SelectItem value="rupture">En rupture</SelectItem><SelectItem value="inactif">Inactifs</SelectItem></SelectContent></Select>
       </div>
       <div className="mt-5 overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Service</TableHead><TableHead>Fréquence</TableHead><TableHead>Catégorie</TableHead><TableHead>Unité</TableHead><TableHead>Stock fixe</TableHead><TableHead>Achats</TableHead><TableHead>Ventes</TableHead><TableHead>Prélèvements</TableHead><TableHead>Stock actuel</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Service</TableHead><TableHead>Fréquence</TableHead><TableHead>Catégorie</TableHead><TableHead>Unité</TableHead><TableHead>Stock fixe</TableHead><TableHead>Achats</TableHead><TableHead>Ventes</TableHead><TableHead>Prélèvements</TableHead><TableHead>Seuil / cible</TableHead><TableHead>Stock actuel</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>{paged.map((a) => <TableRow key={a.id}>
             <TableCell className="font-medium">{a.nom}</TableCell>
             <TableCell><Badge variant={a.point === "Bar" ? "secondary" : "warning"}>{a.point}</Badge></TableCell>
@@ -69,8 +77,9 @@ function Page() {
             <TableCell>{a.achats}</TableCell>
             <TableCell>{a.ventes}</TableCell>
             <TableCell>{a.prelevements}</TableCell>
-            <TableCell><Badge variant={a.stock < a.seuil ? "destructive" : "secondary"}>{a.stock} {a.unite}</Badge></TableCell>
-            <TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" title="Détails" onClick={() => launch("view", a)}><Eye className="h-4 w-4" /></Button><Button size="icon" variant="ghost" title="Éditer" onClick={() => launch("edit", a)}><Pencil className="h-4 w-4" /></Button><Button size="icon" variant="ghost" title="Supprimer" onClick={() => { removeArticle(a.id); toast.success("Produit supprimé."); }}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></TableCell>
+            <TableCell className="text-xs">{a.seuil} / {stockCible(a)}{!isActive(a) && <Badge variant="outline" className="ml-1">Inactif</Badge>}</TableCell>
+            <TableCell><Badge variant={a.stock <= 0 ? "destructive" : a.stock <= a.seuil ? "warning" : "secondary"}>{a.stock} {a.unite}</Badge></TableCell>
+            <TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" title="Détails" onClick={() => launch("view", a)}><Eye className="h-4 w-4" /></Button>{canEdit && <><Button size="icon" variant="ghost" title="Éditer" onClick={() => launch("edit", a)}><Pencil className="h-4 w-4" /></Button><Button size="icon" variant="ghost" title="Supprimer" onClick={() => { if (window.confirm(`Supprimer ${a.nom} ?`)) { removeArticle(a.id); toast.success("Produit supprimé."); } }}><Trash2 className="h-4 w-4 text-destructive" /></Button></>}</div></TableCell>
           </TableRow>)}</TableBody>
         </Table>
       </div>
