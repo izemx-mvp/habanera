@@ -19,6 +19,7 @@ type OperationsValue = {
   updatePurchase: (id: string, changes: Partial<Purchase>) => void; addSale: (sale: Omit<Sale, "id">) => Sale; updateSale: (id: string, status: Sale["status"]) => void;
   resolveAlert: (id: string, author: string) => void; addSupplier: (supplier: Omit<Supplier, "id">) => void; updateSupplier: (id: string, changes: Partial<Supplier>) => void;
   closeInventory: (report: Omit<InventoryReport, "id">) => InventoryReport;
+  adjustStock: (id: string, delta: number) => void; addAlert: (alert: Omit<AlertItem, "id" | "resolved" | "createdAt">) => void;
 };
 export const OperationsContext = createContext<OperationsValue | null>(null);
 
