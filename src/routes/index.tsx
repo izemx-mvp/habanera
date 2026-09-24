@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/lib/auth";
+import { SEED_USERS, useAuth } from "@/lib/auth";
+import { SPACE_HOME } from "@/lib/permissions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/")({
 });
 
 function LoginPage() {
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, space } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("salah.bennani@habanera.com");
   const [password, setPassword] = useState("habanera2026");
@@ -38,8 +39,8 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated) navigate({ to: "/tableau-de-bord", replace: true });
-  }, [isAuthenticated, navigate]);
+    if (isAuthenticated) navigate({ to: SPACE_HOME[space], replace: true });
+  }, [isAuthenticated, navigate, space]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,9 +51,9 @@ function LoginPage() {
     setError(null);
     setLoading(true);
     setTimeout(() => {
-      login(email);
+      const profile = login(email);
       setLoading(false);
-      navigate({ to: "/tableau-de-bord", replace: true });
+      navigate({ to: SPACE_HOME[profile.role === "Administrateur" ? "admin" : profile.role === "Économat" ? "economat" : "service"], replace: true });
     }, 650);
   }
 
@@ -140,6 +141,11 @@ function LoginPage() {
           <p className="mt-6 rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
             Démo : identifiants pré-remplis pour le compte Administrateur Salah Bennani.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2" aria-label="Profils de démonstration">
+            {SEED_USERS.filter((u) => u.statut === "Actif").map((u) => (
+              <button key={u.id} type="button" onClick={() => setEmail(u.email)} className={`rounded-full border px-3 py-1 text-xs transition-colors ${email === u.email ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-secondary"}`}>{u.role}</button>
+            ))}
+          </div>
         </form>
         <footer className="absolute bottom-5 left-0 right-0 text-center text-xs text-muted-foreground">Ce MVP a été conçu et développé par IZEMX</footer>
       </div>

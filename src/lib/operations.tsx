@@ -48,7 +48,9 @@ export function OperationsProvider({ children }: { children: ReactNode }) {
   const addSupplier = (supplier: Omit<Supplier, "id">) => setSuppliers((p) => [{ ...supplier, id: `F-${Date.now().toString().slice(-4)}` }, ...p]);
   const updateSupplier = (id: string, changes: Partial<Supplier>) => setSuppliers((p) => p.map((s) => s.id === id ? { ...s, ...changes } : s));
   const closeInventory = (report: Omit<InventoryReport, "id">) => { const created = { ...report, id: `INV-${Date.now().toString().slice(-6)}` }; setInventoryReports((p) => [created, ...p]); return created; };
-  const value = useMemo(() => ({ articles, purchases, sales, alerts, suppliers, inventoryReports, inventoryDraft, withdrawals, addArticle, updateArticle, removeArticle, validateWithdrawal, saveInventoryDraft, addPurchase, updatePurchase, addSale, updateSale, resolveAlert, addSupplier, updateSupplier, closeInventory }), [articles, purchases, sales, alerts, suppliers, inventoryReports, inventoryDraft, withdrawals]);
+  const adjustStock = (id: string, delta: number) => setArticles((p) => p.map((a) => a.id === id ? { ...a, stock: Math.max(0, +(a.stock + delta).toFixed(3)) } : a));
+  const addAlert = (alert: Omit<AlertItem, "id" | "resolved" | "createdAt">) => setAlerts((p) => [{ ...alert, id: `AL-${Date.now().toString().slice(-5)}${Math.floor(Math.random()*90+10)}`, resolved: false, createdAt: new Date().toLocaleString("fr-FR") }, ...p]);
+  const value = useMemo(() => ({ adjustStock, addAlert, articles, purchases, sales, alerts, suppliers, inventoryReports, inventoryDraft, withdrawals, addArticle, updateArticle, removeArticle, validateWithdrawal, saveInventoryDraft, addPurchase, updatePurchase, addSale, updateSale, resolveAlert, addSupplier, updateSupplier, closeInventory }), [articles, purchases, sales, alerts, suppliers, inventoryReports, inventoryDraft, withdrawals]);
   return <OperationsContext.Provider value={value}>{children}</OperationsContext.Provider>;
 }
 

@@ -12,14 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AchatsReceptionsRouteImport } from './routes/achats-receptions'
 import { Route as AlertesRouteImport } from './routes/alertes'
+import { Route as ApprovisionnementRouteImport } from './routes/approvisionnement'
 import { Route as BonsPrelevementRouteImport } from './routes/bons-prelevement'
+import { Route as CuisineBarRouteImport } from './routes/cuisine-bar'
+import { Route as EconomatRouteImport } from './routes/economat'
 import { Route as FournisseursRouteImport } from './routes/fournisseurs'
 import { Route as InventaireRouteImport } from './routes/inventaire'
+import { Route as MonStockRouteImport } from './routes/mon-stock'
 import { Route as MouvementsRouteImport } from './routes/mouvements'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as ParametresRouteImport } from './routes/parametres'
+import { Route as ReceptionsRouteImport } from './routes/receptions'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as TableauDeBordRouteImport } from './routes/tableau-de-bord'
 import { Route as UtilisateursRouteImport } from './routes/utilisateurs'
+import { Route as VentesRouteImport } from './routes/ventes'
 import { Route as VentesZRouteImport } from './routes/ventes-z'
 
 const IndexRoute = IndexRouteImport.update({
@@ -37,9 +44,24 @@ const AlertesRoute = AlertesRouteImport.update({
   path: '/alertes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApprovisionnementRoute = ApprovisionnementRouteImport.update({
+  id: '/approvisionnement',
+  path: '/approvisionnement',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BonsPrelevementRoute = BonsPrelevementRouteImport.update({
   id: '/bons-prelevement',
   path: '/bons-prelevement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuisineBarRoute = CuisineBarRouteImport.update({
+  id: '/cuisine-bar',
+  path: '/cuisine-bar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EconomatRoute = EconomatRouteImport.update({
+  id: '/economat',
+  path: '/economat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FournisseursRoute = FournisseursRouteImport.update({
@@ -52,14 +74,29 @@ const InventaireRoute = InventaireRouteImport.update({
   path: '/inventaire',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MonStockRoute = MonStockRouteImport.update({
+  id: '/mon-stock',
+  path: '/mon-stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MouvementsRoute = MouvementsRouteImport.update({
   id: '/mouvements',
   path: '/mouvements',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ParametresRoute = ParametresRouteImport.update({
   id: '/parametres',
   path: '/parametres',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceptionsRoute = ReceptionsRouteImport.update({
+  id: '/receptions',
+  path: '/receptions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StockRoute = StockRouteImport.update({
@@ -77,6 +114,11 @@ const UtilisateursRoute = UtilisateursRouteImport.update({
   path: '/utilisateurs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VentesRoute = VentesRouteImport.update({
+  id: '/ventes',
+  path: '/ventes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VentesZRoute = VentesZRouteImport.update({
   id: '/ventes-z',
   path: '/ventes-z',
@@ -87,28 +129,42 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
+  '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/cuisine-bar': typeof CuisineBarRoute
+  '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
+  '/mon-stock': typeof MonStockRoute
   '/mouvements': typeof MouvementsRoute
+  '/notifications': typeof NotificationsRoute
   '/parametres': typeof ParametresRoute
+  '/receptions': typeof ReceptionsRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
+  '/ventes': typeof VentesRoute
   '/ventes-z': typeof VentesZRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
+  '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/cuisine-bar': typeof CuisineBarRoute
+  '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
+  '/mon-stock': typeof MonStockRoute
   '/mouvements': typeof MouvementsRoute
+  '/notifications': typeof NotificationsRoute
   '/parametres': typeof ParametresRoute
+  '/receptions': typeof ReceptionsRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
+  '/ventes': typeof VentesRoute
   '/ventes-z': typeof VentesZRoute
 }
 export interface FileRoutesById {
@@ -116,14 +172,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/achats-receptions': typeof AchatsReceptionsRoute
   '/alertes': typeof AlertesRoute
+  '/approvisionnement': typeof ApprovisionnementRoute
   '/bons-prelevement': typeof BonsPrelevementRoute
+  '/cuisine-bar': typeof CuisineBarRoute
+  '/economat': typeof EconomatRoute
   '/fournisseurs': typeof FournisseursRoute
   '/inventaire': typeof InventaireRoute
+  '/mon-stock': typeof MonStockRoute
   '/mouvements': typeof MouvementsRoute
+  '/notifications': typeof NotificationsRoute
   '/parametres': typeof ParametresRoute
+  '/receptions': typeof ReceptionsRoute
   '/stock': typeof StockRoute
   '/tableau-de-bord': typeof TableauDeBordRoute
   '/utilisateurs': typeof UtilisateursRoute
+  '/ventes': typeof VentesRoute
   '/ventes-z': typeof VentesZRoute
 }
 export interface FileRouteTypes {
@@ -132,42 +195,63 @@ export interface FileRouteTypes {
     | '/'
     | '/achats-receptions'
     | '/alertes'
+    | '/approvisionnement'
     | '/bons-prelevement'
+    | '/cuisine-bar'
+    | '/economat'
     | '/fournisseurs'
     | '/inventaire'
+    | '/mon-stock'
     | '/mouvements'
+    | '/notifications'
     | '/parametres'
+    | '/receptions'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
+    | '/ventes'
     | '/ventes-z'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/achats-receptions'
     | '/alertes'
+    | '/approvisionnement'
     | '/bons-prelevement'
+    | '/cuisine-bar'
+    | '/economat'
     | '/fournisseurs'
     | '/inventaire'
+    | '/mon-stock'
     | '/mouvements'
+    | '/notifications'
     | '/parametres'
+    | '/receptions'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
+    | '/ventes'
     | '/ventes-z'
   id:
     | '__root__'
     | '/'
     | '/achats-receptions'
     | '/alertes'
+    | '/approvisionnement'
     | '/bons-prelevement'
+    | '/cuisine-bar'
+    | '/economat'
     | '/fournisseurs'
     | '/inventaire'
+    | '/mon-stock'
     | '/mouvements'
+    | '/notifications'
     | '/parametres'
+    | '/receptions'
     | '/stock'
     | '/tableau-de-bord'
     | '/utilisateurs'
+    | '/ventes'
     | '/ventes-z'
   fileRoutesById: FileRoutesById
 }
@@ -175,14 +259,21 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AchatsReceptionsRoute: typeof AchatsReceptionsRoute
   AlertesRoute: typeof AlertesRoute
+  ApprovisionnementRoute: typeof ApprovisionnementRoute
   BonsPrelevementRoute: typeof BonsPrelevementRoute
+  CuisineBarRoute: typeof CuisineBarRoute
+  EconomatRoute: typeof EconomatRoute
   FournisseursRoute: typeof FournisseursRoute
   InventaireRoute: typeof InventaireRoute
+  MonStockRoute: typeof MonStockRoute
   MouvementsRoute: typeof MouvementsRoute
+  NotificationsRoute: typeof NotificationsRoute
   ParametresRoute: typeof ParametresRoute
+  ReceptionsRoute: typeof ReceptionsRoute
   StockRoute: typeof StockRoute
   TableauDeBordRoute: typeof TableauDeBordRoute
   UtilisateursRoute: typeof UtilisateursRoute
+  VentesRoute: typeof VentesRoute
   VentesZRoute: typeof VentesZRoute
 }
 
@@ -209,11 +300,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/approvisionnement': {
+      id: '/approvisionnement'
+      path: '/approvisionnement'
+      fullPath: '/approvisionnement'
+      preLoaderRoute: typeof ApprovisionnementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bons-prelevement': {
       id: '/bons-prelevement'
       path: '/bons-prelevement'
       fullPath: '/bons-prelevement'
       preLoaderRoute: typeof BonsPrelevementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cuisine-bar': {
+      id: '/cuisine-bar'
+      path: '/cuisine-bar'
+      fullPath: '/cuisine-bar'
+      preLoaderRoute: typeof CuisineBarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/economat': {
+      id: '/economat'
+      path: '/economat'
+      fullPath: '/economat'
+      preLoaderRoute: typeof EconomatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fournisseurs': {
@@ -230,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventaireRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mon-stock': {
+      id: '/mon-stock'
+      path: '/mon-stock'
+      fullPath: '/mon-stock'
+      preLoaderRoute: typeof MonStockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mouvements': {
       id: '/mouvements'
       path: '/mouvements'
@@ -237,11 +356,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MouvementsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/parametres': {
       id: '/parametres'
       path: '/parametres'
       fullPath: '/parametres'
       preLoaderRoute: typeof ParametresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/receptions': {
+      id: '/receptions'
+      path: '/receptions'
+      fullPath: '/receptions'
+      preLoaderRoute: typeof ReceptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stock': {
@@ -265,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UtilisateursRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ventes': {
+      id: '/ventes'
+      path: '/ventes'
+      fullPath: '/ventes'
+      preLoaderRoute: typeof VentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ventes-z': {
       id: '/ventes-z'
       path: '/ventes-z'
@@ -279,14 +419,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AchatsReceptionsRoute: AchatsReceptionsRoute,
   AlertesRoute: AlertesRoute,
+  ApprovisionnementRoute: ApprovisionnementRoute,
   BonsPrelevementRoute: BonsPrelevementRoute,
+  CuisineBarRoute: CuisineBarRoute,
+  EconomatRoute: EconomatRoute,
   FournisseursRoute: FournisseursRoute,
   InventaireRoute: InventaireRoute,
+  MonStockRoute: MonStockRoute,
   MouvementsRoute: MouvementsRoute,
+  NotificationsRoute: NotificationsRoute,
   ParametresRoute: ParametresRoute,
+  ReceptionsRoute: ReceptionsRoute,
   StockRoute: StockRoute,
   TableauDeBordRoute: TableauDeBordRoute,
   UtilisateursRoute: UtilisateursRoute,
+  VentesRoute: VentesRoute,
   VentesZRoute: VentesZRoute,
 }
 export const routeTree = rootRouteImport
