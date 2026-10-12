@@ -91,6 +91,7 @@ export function applyMovement(opts: {
   userId: string
   documentRef?: string
   comment?: string
+  fineDetail?: string
   unitCost?: number | null
 }) {
   const before = balances[opts.location][opts.productId] ?? 0
@@ -106,6 +107,7 @@ export function applyMovement(opts: {
     type: opts.type,
     quantity,
     unit: opts.unit,
+    fineDetail: opts.fineDetail,
     stockBefore: before,
     stockAfter: after,
     userId: opts.userId,
@@ -705,6 +707,25 @@ function rejectOutflow(o: NonSalesOutflow, date: string, validatedBy: string, re
   const o12 = declareOutflow({ name: 'Corona 33 cl', location: 'bar', qty: 5, reason: 'produit_perime', declaredBy: U_BAR, date: dayISO(8) })
   validateOutflow(o12, dayISO(9), U_ADMIN)
   OUTFLOWS.push(o12)
+
+  // Simulation concrète d'une vente en doses : Glenmorangie 15 ans
+  // Initialement 1 bouteille au Bar (15 doses) -> Vente de 10 doses (0.667 btl) sur Ticket Z clôture
+  // Reste : 0 btl pleine + 5 doses (0.333 btl)
+  const glen15 = byName('Glenmorangie 15 ans')
+  balances.bar[glen15.id] = 1.0 // S'assure que le Bar avait 1 bouteille pleine (15 doses)
+  applyMovement({
+    date: dayISO(45, 23, 45),
+    productId: glen15.id,
+    location: 'bar',
+    type: 'vente',
+    delta: -0.6667, // -10 doses sur 15
+    unit: 'bouteille',
+    userId: U_BAR,
+    documentRef: 'Z-20261010-045',
+    comment: 'Ticket Z caisse de clôture : Vente de 10 doses (50 cl)',
+    fineDetail: '-10 doses (soit 50 cl déduits)',
+    unitCost: cump[glen15.id] ?? 260,
+  })
 }
 
 // ---------- exports ----------
@@ -712,5 +733,11 @@ movements.sort((a, b) => a.date.localeCompare(b.date))
 export const MOVEMENTS = movements
 export const BALANCES = balances
 export const CUMP = cump
+export const REAL_STOCKS: Record<StockLocationId, Record<string, number>> = { economat: {}, bar: {}, cuisine: {} }
+for (const p of PRODUCTS) {
+  REAL_STOCKS.economat[p.id] = balances.economat[p.id] ?? 0
+  REAL_STOCKS.bar[p.id] = balances.bar[p.id] ?? 0
+  REAL_STOCKS.cuisine[p.id] = balances.cuisine[p.id] ?? 0
+}
 export const SUPPLIERS_REF = SUPPLIERS
 export const USERS_REF = USERS

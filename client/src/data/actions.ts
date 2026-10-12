@@ -1,7 +1,7 @@
 // Couche d'actions — toutes les opérations d'écriture passent par ici (jamais une mutation
 // directe depuis un écran), pour garantir les mêmes contrôles qu'un vrai moteur serveur :
 // pas de quantité nulle ou négative, pas de double mouvement, pas de stock négatif.
-import { applyMovement, BALANCES, CUMP, GOODS_RECEIPTS, OUTFLOWS, PURCHASE_ORDERS, REQUISITIONS } from './generate'
+import { applyMovement, BALANCES, CUMP, GOODS_RECEIPTS, OUTFLOWS, PURCHASE_ORDERS, REAL_STOCKS, REQUISITIONS } from './generate'
 import { PRODUCTS, productById } from './catalog'
 import { SUPPLIERS } from './referentials'
 import { useDataVersion } from '@/store/data-version'
@@ -17,6 +17,7 @@ import type {
   RequisitionItem,
   RequisitionOrder,
   StockLocationId,
+  Supplier,
   UnitId,
 } from './types'
 
@@ -35,7 +36,7 @@ export function createRequisition(location: 'bar' | 'cuisine', requestedBy: stri
   if (clean.length === 0) return { ok: false, error: 'Ajoutez au moins une ligne avec une quantité strictement positive.' }
   for (const it of clean) {
     const p = productById(it.productId)
-    if (!p || p.location !== location) return { ok: false, error: `Le produit sélectionné n'appartient pas au catalogue ${location === 'bar' ? 'du Bar' : 'de la Cuisine'}.` }
+    if (!p) return { ok: false, error: 'Produit introuvable.' }
   }
   const id = padId('BP', REQUISITIONS.length + 1)
   const reqItems: RequisitionItem[] = clean.map((it) => ({ productId: it.productId, qtyRequested: it.qty, qtyPrepared: 0, qtyDelivered: 0, unit: productById(it.productId)!.storageUnit }))
@@ -102,10 +103,98 @@ export function rejectRequisition(reqId: string, userId: string, comment: string
   return { ok: true }
 }
 
+export function confirmRequisition(reqId: string, userId: string): Result {
+  const r = REQUISITIONS.find((r) => r.id === reqId)
+  if (!r) return { ok: false, error: 'Bon introuvable.' }
+  r.confirmedByService = true
+  r.confirmedAt = nowISO()
+  r.confirmedByUserId = userId
+  r.history.push({ date: nowISO(), status: r.status, userId, comment: 'Réception physique confirmée par le service' })
+  bump()
+  return { ok: true }
+}
+
+export function contestRequisition(
+  reqId: string,
+  userId: string,
+  items: { productId: string; actualQty: number; reason: string }[],
+): Result {
+  const r = REQUISITIONS.find((r) => r.id === reqId)
+  if (!r) return { ok: false, error: 'Bon introuvable.' }
+
+  for (const c of items) {
+    const item = r.items.find((i) => i.productId === c.productId)
+    if (!item) continue
+    const diff = item.qtyDelivered - c.actualQty
+    if (diff > 0) {
+      item.contestedQty = diff
+      item.contestationReason = c.reason || 'Écart constaté à la réception'
+      item.qtyDelivered = c.actualQty
+
+      // Déduire le manquant/perte du stock du service
+      applyMovement({
+        date: nowISO(),
+        productId: c.productId,
+        location: r.requestingLocation,
+        type: 'sortie_hors_vente_validee',
+        delta: -diff,
+        unit: item.unit,
+        userId,
+        documentRef: r.id,
+        comment: `Contestation réception terrain (${c.reason || 'Casse transport'})`,
+        unitCost: CUMP[c.productId],
+      })
+    }
+  }
+
+  r.hasContestation = true
+  r.contestationReason = items[0]?.reason || 'Écart physique signalé'
+  r.contestedAt = nowISO()
+  r.confirmedByService = true
+  r.confirmedAt = nowISO()
+  r.confirmedByUserId = userId
+
+  const fullyDelivered = r.items.every((i) => i.qtyDelivered >= i.qtyRequested)
+  r.status = fullyDelivered ? 'livre' : 'partiellement_livre'
+  r.history.push({
+    date: nowISO(),
+    status: r.status,
+    userId,
+    comment: `Contestation signalée : ${items.map((it) => `${productById(it.productId)?.name ?? it.productId} (${it.actualQty} reçus, motif: ${it.reason})`).join(', ')}`,
+  })
+
+  bump()
+  return { ok: true }
+}
+
+export function deliverReliquat(reqId: string, userId: string): Result {
+  const r = REQUISITIONS.find((r) => r.id === reqId)
+  if (!r) return { ok: false, error: 'Bon introuvable.' }
+  if (r.status !== 'partiellement_livre') return { ok: false, error: 'Ce bon n\'a pas de reliquat en attente.' }
+
+  const deliveries: { productId: string; qty: number }[] = []
+  for (const it of r.items) {
+    const remaining = it.qtyRequested - it.qtyDelivered
+    if (remaining > 0) {
+      const avail = BALANCES.economat[it.productId] ?? 0
+      const deliverQty = Math.min(remaining, avail)
+      if (deliverQty > 0) {
+        deliveries.push({ productId: it.productId, qty: deliverQty })
+      }
+    }
+  }
+
+  if (deliveries.length === 0) {
+    return { ok: false, error: 'Stock central insuffisant pour préparer le reliquat actuellement.' }
+  }
+
+  return deliverRequisition(reqId, userId, deliveries)
+}
+
 // ---------- Sorties hors-vente ----------
 export function declareOutflow(opts: { productId: string; location: 'bar' | 'cuisine'; quantity: number; reason: OutflowReason; comment?: string; declaredBy: string }): Result {
   const p = productById(opts.productId)
-  if (!p || p.location !== opts.location) return { ok: false, error: 'Le produit sélectionné n\'appartient pas à ce service.' }
+  if (!p) return { ok: false, error: 'Produit introuvable.' }
   if (opts.quantity <= 0) return { ok: false, error: 'La quantité doit être strictement positive.' }
   if (opts.reason === 'autre' && !opts.comment?.trim()) return { ok: false, error: 'Un commentaire est obligatoire pour le motif "Autre".' }
   const o: NonSalesOutflow = {
@@ -157,7 +246,12 @@ export function rejectOutflowAction(id: string, validatedBy: string, reason: str
 }
 
 // ---------- Commandes fournisseurs & réceptions ----------
-export function createPurchaseOrder(supplierId: string, createdBy: string, items: { productId: string; qty: number; unitCost: number | null }[]): Result {
+export function createPurchaseOrder(
+  supplierId: string,
+  createdBy: string,
+  items: { productId: string; qty: number; unitCost: number | null }[],
+  expectedDeliveryDate?: string,
+): Result {
   const clean = items.filter((it) => it.qty > 0)
   if (!clean.length) return { ok: false, error: 'Ajoutez au moins une ligne avec une quantité strictement positive.' }
   if (!SUPPLIERS.find((s) => s.id === supplierId)) return { ok: false, error: 'Fournisseur introuvable.' }
@@ -165,6 +259,7 @@ export function createPurchaseOrder(supplierId: string, createdBy: string, items
     id: padId('BC', PURCHASE_ORDERS.length + 1),
     supplierId,
     date: nowISO(),
+    expectedDeliveryDate,
     createdBy,
     status: 'envoyee',
     items: clean.map((it) => ({ productId: it.productId, qtyOrdered: it.qty, unitCost: it.unitCost, qtyReceived: 0 }) as PurchaseOrderItem),
@@ -215,7 +310,7 @@ export function adjustInventory(location: StockLocationId, productId: string, de
   return { ok: true }
 }
 
-export function setProductField<K extends 'minStock' | 'targetStock' | 'active' | 'costPrice'>(productId: string, field: K, value: any): Result {
+export function setProductField<K extends keyof Product>(productId: string, field: K, value: Product[K]): Result {
   const p = productById(productId)
   if (!p) return { ok: false, error: 'Produit introuvable.' }
   ;(p as any)[field] = value
@@ -246,9 +341,11 @@ export function createProduct(opts: {
   location: 'bar' | 'cuisine'
   storageUnit: UnitId
   saleUnit: UnitId
-  priceFormats: PriceFormat[]
+  priceFormats?: PriceFormat[]
   minStock: number
   targetStock: number
+  dosesPerBottle?: number
+  packSize?: number
 }): Result {
   if (!opts.name.trim()) return { ok: false, error: 'Le nom du produit est requis.' }
   if (PRODUCTS.some((p) => p.name.toLowerCase() === opts.name.trim().toLowerCase())) {
@@ -262,10 +359,12 @@ export function createProduct(opts: {
     location: opts.location,
     storageUnit: opts.storageUnit,
     saleUnit: opts.saleUnit,
-    priceFormats: opts.priceFormats,
+    priceFormats: opts.priceFormats ?? [{ label: 'Standard', price: null }],
     costPrice: null,
     minStock: opts.minStock,
     targetStock: opts.targetStock,
+    dosesPerBottle: opts.dosesPerBottle,
+    packSize: opts.packSize,
     active: true,
     countingFrequency: opts.location === 'cuisine' ? 'quotidien' : 'hebdomadaire',
   }
@@ -376,5 +475,175 @@ export function bulkImportProducts(
 
   bump()
   return { ok: true, count: created + updated, created, updated }
+}
+
+export function recordPhysicalStock(
+  location: StockLocationId,
+  productId: string,
+  realQty: number,
+  userId: string,
+  comment?: string,
+): Result {
+  const p = productById(productId)
+  if (!p) return { ok: false, error: 'Produit introuvable.' }
+  REAL_STOCKS[location][productId] = Math.max(0, realQty)
+  const theo = BALANCES[location][productId] ?? 0
+  const diff = realQty - theo
+  if (diff !== 0) {
+    applyMovement({
+      date: nowISO(),
+      productId,
+      location,
+      type: 'ajustement_inventaire',
+      delta: diff,
+      unit: p.storageUnit,
+      userId,
+      comment: comment || `Inventaire physique réel : ${realQty} ${p.storageUnit} constatés (écart: ${diff > 0 ? '+' : ''}${diff})`,
+      unitCost: CUMP[productId],
+    })
+  }
+  bump()
+  return { ok: true }
+}
+
+export function createSupplier(sup: Omit<Supplier, 'id'>): Result {
+  if (!sup.name.trim()) return { ok: false, error: 'Le nom du fournisseur est obligatoire.' }
+  const id = `sup-${Date.now().toString(36)}`
+  SUPPLIERS.push({ id, ...sup })
+  bump()
+  return { ok: true }
+}
+
+export function updateSupplier(id: string, patch: Partial<Supplier>): Result {
+  const s = SUPPLIERS.find((s) => s.id === id)
+  if (!s) return { ok: false, error: 'Fournisseur introuvable.' }
+  Object.assign(s, patch)
+  bump()
+  return { ok: true }
+}
+
+export function deleteSupplier(id: string): Result {
+  const idx = SUPPLIERS.findIndex((s) => s.id === id)
+  if (idx < 0) return { ok: false, error: 'Fournisseur introuvable.' }
+  SUPPLIERS.splice(idx, 1)
+  bump()
+  return { ok: true }
+}
+
+export function createGroupedPurchaseOrder(
+  supplierId: string,
+  userId: string,
+  items: { productId: string; qty: number; unitCost?: number | null }[],
+  reason: string,
+): Result & { orderId?: string } {
+  const s = SUPPLIERS.find((s) => s.id === supplierId)
+  const delay = s?.deliveryDelayDays ?? 2
+  const arrivalDate = new Date(Date.now() + delay * 86400000).toISOString()
+
+  const id = padId('BC', PURCHASE_ORDERS.length + 1)
+  const po: PurchaseOrder = {
+    id,
+    supplierId,
+    date: nowISO(),
+    expectedDeliveryDate: arrivalDate,
+    items: items.map((it) => ({
+      productId: it.productId,
+      qtyOrdered: it.qty,
+      unitCost: it.unitCost ?? CUMP[it.productId] ?? null,
+      qtyReceived: 0,
+    })),
+    status: 'envoyee',
+    createdBy: userId,
+    isGroupedOrder: true,
+    groupingReason: reason,
+  }
+  PURCHASE_ORDERS.push(po)
+  bump()
+  return { ok: true, orderId: id }
+}
+
+export interface ZSaleItemInput {
+  productName: string
+  quantitySold: number // quantité vendue (en unités ou doses)
+  unitType?: 'verre' | 'bouteille' | 'portion' | 'unite'
+  unitPrice?: number | null
+  totalRevenue?: number | null
+}
+
+export function bulkImportZSales(
+  items: ZSaleItemInput[],
+  options?: {
+    location?: StockLocationId
+    zReference?: string
+    date?: string
+    userId?: string
+  },
+): { ok: boolean; processedCount: number; errors?: string[]; error?: string } {
+  if (!items || items.length === 0) {
+    return { ok: false, processedCount: 0, error: 'Aucune ligne de vente Z fournie.' }
+  }
+
+  const targetLocation: StockLocationId = options?.location || 'bar'
+  const zRef = options?.zReference || `Z-${Date.now().toString().slice(-6)}`
+  const date = options?.date || nowISO()
+  const userId = options?.userId || 'u-admin-1'
+  const errors: string[] = []
+  let processed = 0
+
+  for (const it of items) {
+    if (!it.productName || !it.quantitySold || it.quantitySold <= 0) continue
+
+    const clean = it.productName.trim().toLowerCase()
+    const product = PRODUCTS.find((p) => {
+      const pName = p.name.toLowerCase()
+      return pName === clean || pName.includes(clean) || clean.includes(pName)
+    })
+
+    if (!product) {
+      errors.push(`Produit non reconnu dans le catalogue : "${it.productName}"`)
+      continue
+    }
+
+    // Calcul de la déduction : si le produit est spiritueux stocké en bouteille avec dosesPerBottle
+    // et que la vente est exprimée en verres/doses
+    let deductionUnits = it.quantitySold
+    let fineDetail = `-${it.quantitySold} ${it.unitType || product.saleUnit}`
+
+    if (product.storageUnit === 'bouteille' && product.dosesPerBottle && (it.unitType === 'verre' || it.unitType === 'portion' || it.unitType === 'unite')) {
+      deductionUnits = it.quantitySold / product.dosesPerBottle
+      const btlInt = Math.floor(it.quantitySold / product.dosesPerBottle)
+      const dosesRem = it.quantitySold % product.dosesPerBottle
+      if (btlInt > 0 && dosesRem > 0) {
+        fineDetail = `-${btlInt} btl et ${dosesRem} doses (-${it.quantitySold} doses)`
+      } else if (btlInt > 0) {
+        fineDetail = `-${btlInt} btl (-${it.quantitySold} doses)`
+      } else {
+        fineDetail = `-${it.quantitySold} doses`
+      }
+    }
+
+    applyMovement({
+      date,
+      productId: product.id,
+      location: targetLocation,
+      type: 'vente',
+      delta: -deductionUnits,
+      unit: product.storageUnit,
+      userId,
+      documentRef: zRef,
+      comment: `Ticket Z caisse (${zRef}) : -${it.quantitySold} ${it.unitType || product.saleUnit}`,
+      fineDetail,
+      unitCost: CUMP[product.id],
+    })
+
+    processed++
+  }
+
+  bump()
+  return {
+    ok: processed > 0,
+    processedCount: processed,
+    errors: errors.length > 0 ? errors : undefined,
+  }
 }
 

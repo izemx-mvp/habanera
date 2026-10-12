@@ -8,8 +8,14 @@ import { PERSONAS, USERS } from '@/data/referentials'
 import { useAppStore } from '@/store/app-store'
 import type { Role } from '@/data/types'
 
-const ROLE_LABEL: Record<Role, string> = { admin: 'Administrateur', economat: 'Économat', bar: 'Bar', cuisine: 'Cuisine' }
-const ROLES: Role[] = ['admin', 'economat', 'bar', 'cuisine']
+const ROLE_LABEL: Record<Role, string> = {
+  admin: 'Administrateur',
+  economat: 'Économat',
+  service: 'Opérations de Service',
+  bar: 'Bar',
+  cuisine: 'Cuisine',
+}
+const ROLES: Role[] = ['admin', 'economat', 'service', 'bar', 'cuisine']
 
 export default function AdminUtilisateurs() {
   const customUsers = useAppStore((s) => s.customUsers)

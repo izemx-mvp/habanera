@@ -1,6 +1,4 @@
-// Modèle de données HABANERA — types partagés par le générateur, les écrans et le moteur IA.
-
-export type Role = 'admin' | 'economat' | 'bar' | 'cuisine'
+export type Role = 'admin' | 'economat' | 'service' | 'bar' | 'cuisine'
 
 export interface Persona {
   id: Role
@@ -50,6 +48,10 @@ export interface Product {
   saleUnit: UnitId
   bottleVolumeMl?: number
   servingMl?: number
+  dosesPerBottle?: number
+  servingCl?: number
+  packSize?: number
+  trackingMode?: 'theorique' | 'reel' | 'theorique_et_reel'
   bucketOf5?: boolean
   priceFormats: PriceFormat[]
   costPrice: number | null
@@ -77,6 +79,7 @@ export interface StockMovement {
   type: MovementType
   quantity: number
   unit: UnitId
+  fineDetail?: string
   stockBefore: number
   stockAfter: number
   userId: string
@@ -86,7 +89,13 @@ export interface StockMovement {
   value: number | null
 }
 
-export type RequisitionStatus = 'brouillon' | 'en_attente' | 'en_preparation' | 'partiellement_livre' | 'livre' | 'rejete'
+export type RequisitionStatus =
+  | 'brouillon'
+  | 'en_attente'
+  | 'en_preparation'
+  | 'partiellement_livre'
+  | 'livre'
+  | 'rejete'
 
 export interface RequisitionItem {
   productId: string
@@ -94,6 +103,8 @@ export interface RequisitionItem {
   qtyPrepared: number
   qtyDelivered: number
   unit: UnitId
+  contestedQty?: number
+  contestationReason?: string
 }
 
 export interface RequisitionHistoryEntry {
@@ -112,6 +123,12 @@ export interface RequisitionOrder {
   comment?: string
   status: RequisitionStatus
   history: RequisitionHistoryEntry[]
+  confirmedByService?: boolean
+  confirmedAt?: string
+  confirmedByUserId?: string
+  hasContestation?: boolean
+  contestationReason?: string
+  contestedAt?: string
 }
 
 export interface Supplier {
@@ -121,6 +138,11 @@ export interface Supplier {
   phone: string
   email: string
   city: string
+  address?: string
+  ratingQuality?: number
+  deliveryDelayDays?: number
+  priceIndex?: 'économique' | 'standard' | 'premium' | 'Économique' | 'Moyen' | 'Premium'
+  paymentTerms?: string
 }
 
 export type PurchaseOrderStatus = 'brouillon' | 'envoyee' | 'partiellement_recue' | 'receptionnee' | 'annulee'
@@ -136,9 +158,12 @@ export interface PurchaseOrder {
   id: string
   supplierId: string
   date: string
+  expectedDeliveryDate?: string
   items: PurchaseOrderItem[]
   status: PurchaseOrderStatus
   createdBy: string
+  isGroupedOrder?: boolean
+  groupingReason?: string
 }
 
 export interface GoodsReceiptItem {

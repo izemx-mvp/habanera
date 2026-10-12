@@ -3,8 +3,9 @@ import { Lock } from 'lucide-react'
 import { useAppStore } from '@/store/app-store'
 import { PERSONAS } from '@/data/referentials'
 import { Empty } from './ui'
+import type { Role } from '@/data/types'
 
-export function RbacGate({ children, allow }: { children: React.ReactNode; allow: ('admin' | 'economat' | 'bar' | 'cuisine')[] }) {
+export function RbacGate({ children, allow }: { children: React.ReactNode; allow: Role[] }) {
   const personaId = useAppStore((s) => s.personaId)
   const loc = useLocation()
   const blockedByOverride = useAppStore((s) => !!personaId && (s.disabledRoutes[personaId] ?? []).includes(loc.pathname))

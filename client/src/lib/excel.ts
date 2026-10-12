@@ -83,7 +83,7 @@ function mapUnit(val: string, location: 'bar' | 'cuisine'): UnitId {
 export async function parseExcelFile(file: File, defaultLocation?: 'bar' | 'cuisine'): Promise<ExcelProductRow[]> {
   const XLSX = await ensureXLSX()
   const buffer = await file.arrayBuffer()
-  const workbook = XLSX.read(buffer, { type: 'array' })
+  const workbook = XLSX.read(buffer, { type: 'array', codepage: 65001 })
   const firstSheetName = workbook.SheetNames[0]
   if (!firstSheetName) throw new Error('Le document Excel est vide.')
 
@@ -207,4 +207,112 @@ export async function downloadExcelTemplate(location?: 'bar' | 'cuisine') {
   XLSX.utils.book_append_sheet(wb, ws, 'Modèle Produits')
   const filename = `modele_import_produits_${location || 'habanera'}.xlsx`
   XLSX.writeFile(wb, filename)
+}
+
+export interface ExcelZRow {
+  productName: string
+  quantitySold: number
+  unitType: 'verre' | 'bouteille' | 'portion' | 'unite'
+  unitPrice: number | null
+  totalRevenue: number | null
+  date?: string
+}
+
+export async function parseZExcelFile(file: File): Promise<ExcelZRow[]> {
+  const XLSX = await ensureXLSX()
+  const buffer = await file.arrayBuffer()
+  const workbook = XLSX.read(buffer, { type: 'array' })
+  const sheetName = workbook.SheetNames[0]
+  const worksheet = workbook.Sheets[sheetName]
+  const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' })
+
+  const results: ExcelZRow[] = []
+
+  for (const raw of rawRows) {
+    const keys = Object.keys(raw)
+    const findVal = (terms: string[]) => {
+      const match = keys.find((k) => {
+        const norm = normalizeKey(k)
+        return terms.some((t) => norm.includes(t))
+      })
+      return match ? raw[match] : null
+    }
+
+    const name = String(findVal(['produit', 'article', 'nom', 'designation', 'libelle', 'item']) || '').trim()
+    if (!name) continue
+
+    const qtyVal = Number(findVal(['qte', 'quantite', 'vendue', 'nbre', 'ventes', 'qty', 'vendu'])) || 0
+    if (qtyVal <= 0) continue
+
+    const unitStr = String(findVal(['unite', 'format', 'type', 'portion']) || '').toLowerCase()
+    let unitType: 'verre' | 'bouteille' | 'portion' | 'unite' = 'unite'
+    if (unitStr.includes('verre') || unitStr.includes('dose') || unitStr.includes('shot')) {
+      unitType = 'verre'
+    } else if (unitStr.includes('bouteille') || unitStr.includes('btl')) {
+      unitType = 'bouteille'
+    } else if (unitStr.includes('portion')) {
+      unitType = 'portion'
+    }
+
+    const price = Number(findVal(['prix', 'pu', 'tarif', 'unitaire'])) || null
+    const revenue = Number(findVal(['total', 'recette', 'ca', 'chiffre', 'montant'])) || (price ? price * qtyVal : null)
+    const dateStr = String(findVal(['date', 'jour', 'heure']) || '').trim() || undefined
+
+    results.push({
+      productName: name,
+      quantitySold: qtyVal,
+      unitType,
+      unitPrice: price,
+      totalRevenue: revenue,
+      date: dateStr,
+    })
+  }
+
+  return results
+}
+
+export async function downloadZTemplate(): Promise<void> {
+  const XLSX = await ensureXLSX()
+  const data = [
+    {
+      'Nom du produit': 'Casablanca',
+      'Quantité vendue': 14,
+      'Unité / Format': 'bouteille',
+      'Prix unitaire (MAD)': 45,
+      'Total Ventes (MAD)': 630,
+    },
+    {
+      'Nom du produit': 'Heineken',
+      'Quantité vendue': 22,
+      'Unité / Format': 'bouteille',
+      'Prix unitaire (MAD)': 45,
+      'Total Ventes (MAD)': 990,
+    },
+    {
+      'Nom du produit': 'Gin Bombay Sapphire',
+      'Quantité vendue': 18,
+      'Unité / Format': 'verre',
+      'Prix unitaire (MAD)': 90,
+      'Total Ventes (MAD)': 1620,
+    },
+    {
+      'Nom du produit': 'Jameson',
+      'Quantité vendue': 12,
+      'Unité / Format': 'verre',
+      'Prix unitaire (MAD)': 85,
+      'Total Ventes (MAD)': 1020,
+    },
+    {
+      'Nom du produit': 'Red Bull',
+      'Quantité vendue': 8,
+      'Unité / Format': 'unite',
+      'Prix unitaire (MAD)': 50,
+      'Total Ventes (MAD)': 400,
+    },
+  ]
+
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Ticket Z Journée')
+  XLSX.writeFile(wb, 'modele_import_ticket_z_caisse.xlsx')
 }

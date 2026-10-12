@@ -40,8 +40,11 @@ function spirit(name: string, categoryId: ProductCategoryId, opts: Partial<Produ
     location: 'bar',
     storageUnit: 'bouteille',
     saleUnit: 'verre',
-    bottleVolumeMl: 700,
-    servingMl: 40,
+    bottleVolumeMl: 750,
+    servingMl: 50,
+    dosesPerBottle: 15,
+    servingCl: 5,
+    trackingMode: 'theorique',
     priceFormats: [
       { label: 'Verre', price: null },
       { label: 'Bouteille', price: null },
@@ -82,6 +85,8 @@ function soft(name: string, opts: Partial<Product> = {}): Product {
     location: 'bar',
     storageUnit: 'unite',
     saleUnit: 'unite',
+    packSize: 24,
+    trackingMode: 'theorique',
     priceFormats: [{ label: 'Unité', price: null }],
     costPrice: null,
     minStock: 24,
@@ -101,6 +106,8 @@ function beer(name: string, opts: Partial<Product> = {}): Product {
     location: 'bar',
     storageUnit: 'unite',
     saleUnit: 'unite',
+    packSize: 24,
+    trackingMode: 'theorique',
     bucketOf5: true,
     priceFormats: [
       { label: 'Unité', price: null },
@@ -259,4 +266,7 @@ export const PRODUCTS: Product[] = [
 ]
 
 export const productById = (id: string) => PRODUCTS.find((p) => p.id === id)
-export const productsByLocation = (loc: 'bar' | 'cuisine') => PRODUCTS.filter((p) => p.location === loc)
+export const productsByLocation = (loc: 'bar' | 'cuisine' | 'service') => {
+  if (loc === 'service') return PRODUCTS.filter((p) => p.active)
+  return PRODUCTS.filter((p) => p.location === loc)
+}

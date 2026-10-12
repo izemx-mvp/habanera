@@ -6,18 +6,15 @@ import {
   Boxes,
   ClipboardList,
   Truck,
-  PackageCheck,
   AlertTriangle,
-  BarChart3,
   Users,
-  Settings,
-  Info,
   Menu,
   X,
   ListTree,
   ShieldAlert,
   Building2,
   Bot,
+  Sliders,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAppStore } from '@/store/app-store'
@@ -35,17 +32,15 @@ const EMPTY_ROUTES: string[] = []
 export const NAV_BY_ROLE: Record<Role, { to: string; label: string; icon: any; end?: boolean }[]> = {
   admin: [
     { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
-    { to: '/admin/produits', label: 'Catalogue produits', icon: Package },
-    { to: '/admin/stocks', label: 'Stocks et mouvements', icon: Boxes },
+    { to: '/admin/stock-bar', label: 'Stock Bar', icon: Boxes },
+    { to: '/admin/z-mouvements', label: 'Z et mouvements', icon: ListTree },
     { to: '/admin/prelevements', label: 'Bons de prélèvement', icon: ClipboardList },
+    { to: '/admin/stock-economat', label: 'Stock Economat', icon: Package },
+    { to: '/admin/configuration-stock', label: 'Configuration du stock', icon: Sliders },
     { to: '/admin/commandes', label: 'Commandes fournisseurs', icon: Truck },
-    { to: '/admin/fournisseurs', label: 'Fournisseurs & IA', icon: Building2 },
-    { to: '/admin/receptions', label: 'Réceptions', icon: PackageCheck },
     { to: '/admin/sorties-hors-vente', label: 'Sorties hors-vente', icon: AlertTriangle },
     { to: '/admin/alertes', label: 'Alertes & anomalies', icon: ShieldAlert },
-    { to: '/admin/rapports', label: 'Rapports et pertes', icon: BarChart3 },
     { to: '/admin/utilisateurs', label: 'Utilisateurs & rôles', icon: Users },
-    { to: '/admin/parametres', label: 'Paramètres de stock', icon: Settings },
     { to: '/admin/agent-ia', label: 'Agent IA', icon: Bot },
   ],
   economat: [
@@ -57,21 +52,26 @@ export const NAV_BY_ROLE: Record<Role, { to: string; label: string; icon: any; e
     { to: '/economat/fournisseurs', label: 'Recommandations IA', icon: Building2 },
     { to: '/economat/mouvements', label: 'Mouvements de stock', icon: ListTree },
   ],
+  service: [
+    { to: '/service', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
+    { to: '/service/stock', label: 'Stock', icon: Boxes },
+    { to: '/service/z-mouvements', label: 'Z et mouvements', icon: ListTree },
+    { to: '/service/prelevements', label: 'Bons de prélèvement', icon: ClipboardList },
+    { to: '/service/sorties-hors-vente', label: 'Sorties hors-vente', icon: AlertTriangle },
+  ],
   bar: [
-    { to: '/bar', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
-    { to: '/bar/catalogue', label: 'Catalogue des boissons', icon: Package },
-    { to: '/bar/stock', label: 'Stock du Bar', icon: Boxes },
-    { to: '/bar/prelevements', label: 'Bons de prélèvement', icon: ClipboardList },
-    { to: '/bar/mouvements', label: 'Historique des mouvements', icon: ListTree },
-    { to: '/bar/sorties-hors-vente', label: 'Sorties hors-vente', icon: AlertTriangle },
+    { to: '/service', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
+    { to: '/service/stock', label: 'Stock', icon: Boxes },
+    { to: '/service/z-mouvements', label: 'Z et mouvements', icon: ListTree },
+    { to: '/service/prelevements', label: 'Bons de prélèvement', icon: ClipboardList },
+    { to: '/service/sorties-hors-vente', label: 'Sorties hors-vente', icon: AlertTriangle },
   ],
   cuisine: [
-    { to: '/cuisine', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
-    { to: '/cuisine/catalogue', label: 'Catalogue produits', icon: Package },
-    { to: '/cuisine/stock', label: 'Stock Cuisine', icon: Boxes },
-    { to: '/cuisine/prelevements', label: 'Bons de prélèvement', icon: ClipboardList },
-    { to: '/cuisine/mouvements', label: 'Historique des mouvements', icon: ListTree },
-    { to: '/cuisine/sorties-hors-vente', label: 'Sorties hors-vente', icon: AlertTriangle },
+    { to: '/service', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
+    { to: '/service/stock', label: 'Stock', icon: Boxes },
+    { to: '/service/z-mouvements', label: 'Z et mouvements', icon: ListTree },
+    { to: '/service/prelevements', label: 'Bons de prélèvement', icon: ClipboardList },
+    { to: '/service/sorties-hors-vente', label: 'Sorties hors-vente', icon: AlertTriangle },
   ],
 }
 
@@ -131,19 +131,6 @@ export default function Shell() {
               )}
             </NavLink>
           ))}
-          <div className="mt-4 mx-3 divider dark:bg-ink-800" />
-          <NavLink
-            to="/a-propos"
-            className={({ isActive }) =>
-              clsx(
-                'mt-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-colors',
-                isActive ? 'bg-ink-900 text-white dark:bg-copper dark:text-ink-950' : 'text-ink-700 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800',
-              )
-            }
-          >
-            <Info size={16} />
-            <span>À propos du MVP</span>
-          </NavLink>
         </nav>
 
         <div className="border-t border-ink-200 dark:border-ink-800 p-5">
@@ -177,8 +164,8 @@ export default function Shell() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <ThemeToggle />
             {personaId && <NotificationsBell role={personaId} />}
+            <ThemeToggle />
             {persona && <UserMenu persona={persona} onOpenSettings={() => setSettingsOpen(true)} />}
           </div>
         </header>

@@ -1,9 +1,9 @@
 // Sélecteurs dérivés — calculent indicateurs, alertes et historiques à partir des données
 // générées (jamais de chiffre écrit en dur dans les écrans).
-import { CATEGORY_LABEL, PRODUCTS, productsByLocation } from './catalog'
-import { BALANCES, CUMP, DEMO_TODAY, GOODS_RECEIPTS, MOVEMENTS, OUTFLOWS, PURCHASE_ORDERS, REQUISITIONS } from './generate'
+import { CATEGORY_LABEL, PRODUCTS } from './catalog'
+import { BALANCES, CUMP, DEMO_TODAY, GOODS_RECEIPTS, MOVEMENTS, OUTFLOWS, PURCHASE_ORDERS, REAL_STOCKS, REQUISITIONS } from './generate'
 import { SUPPLIERS, userById } from './referentials'
-import type { MovementType, Product, RequisitionStatus, StockAlert, StockLocationId } from './types'
+import type { MovementType, Product, RequisitionStatus, Role, StockAlert, StockLocationId } from './types'
 
 export const fmtMAD = (v: number | null | undefined) =>
   v == null ? 'Non renseigné' : `${v.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} MAD`
@@ -18,24 +18,241 @@ export const fmtDateTime = (iso: string) => {
 }
 
 export const stockAt = (location: StockLocationId, productId: string) => BALANCES[location][productId] ?? 0
+export const realStockAt = (location: StockLocationId, productId: string) => REAL_STOCKS[location][productId] ?? (BALANCES[location][productId] ?? 0)
 export const cumpOf = (productId: string) => CUMP[productId]
 
-export function alertsFor(location: 'bar' | 'cuisine'): StockAlert[] {
-  return productsByLocation(location)
-    .filter((p) => p.active && p.minStock > 0 && stockAt(location, p.id) < p.minStock)
+// Le seuil minimum d'alerte s'applique exclusivement au Stock Central (Économat)
+export function allAlerts(): StockAlert[] {
+  return PRODUCTS.filter((p) => p.active && p.minStock > 0 && stockAt('economat', p.id) < p.minStock)
     .map((p) => ({
-      id: `AL-${location}-${p.id}`,
+      id: `AL-economat-${p.id}`,
       productId: p.id,
-      location,
-      currentQty: stockAt(location, p.id),
+      location: 'economat' as StockLocationId,
+      currentQty: stockAt('economat', p.id),
       minStock: p.minStock,
       date: DEMO_TODAY,
     }))
     .sort((a, b) => a.currentQty / Math.max(1, a.minStock) - b.currentQty / Math.max(1, b.minStock))
 }
 
-export function allAlerts(): StockAlert[] {
-  return [...alertsFor('bar'), ...alertsFor('cuisine')]
+export function alertsFor(location: StockLocationId | 'bar' | 'cuisine'): StockAlert[] {
+  if (location === 'economat') return allAlerts()
+  return []
+}
+
+// Décomposition des doses fines & fonds de bouteilles
+export function stockDoseBreakdown(location: StockLocationId, productId: string) {
+  const p = PRODUCTS.find((prod) => prod.id === productId)
+  const qty = stockAt(location, productId)
+  const dosesPerBtl = p?.dosesPerBottle || (p?.storageUnit === 'bouteille' ? 15 : 1)
+  const fullBottles = Math.floor(qty)
+  const openDoses = Math.round((qty - fullBottles) * dosesPerBtl)
+  const totalDoses = Math.round(qty * dosesPerBtl)
+
+  let display = `${qty} ${p?.storageUnit ?? 'u'}`
+  let openBottleDetail: string | null = null
+
+  if (p?.storageUnit === 'bouteille' && dosesPerBtl > 1) {
+    if (fullBottles === 0 && openDoses > 0) {
+      display = `0 btl pleine + ${openDoses} doses (${qty.toFixed(2)} btl)`
+      openBottleDetail = `Bouteille entamée (${openDoses} doses restantes / ${dosesPerBtl})`
+    } else if (openDoses > 0) {
+      display = `${fullBottles} btl & ${openDoses} doses (${qty.toFixed(2)} btl)`
+      openBottleDetail = `Bouteille entamée (${openDoses} doses restantes / ${dosesPerBtl})`
+    } else {
+      display = `${fullBottles} btl (${totalDoses} doses)`
+      openBottleDetail = `${fullBottles} bouteille(s) scellée(s)`
+    }
+  }
+
+  return {
+    fullBottles,
+    openDoses,
+    totalDoses,
+    decimalValue: qty,
+    display,
+    openBottleDetail,
+    packEquivalent: p?.packSize ? (qty / p.packSize).toFixed(1) + ' packs' : null,
+  }
+}
+
+// Calcul du volume en litres en fonction du produit et de la quantité stockée
+export function productVolumeLiters(p: Product, qty: number): number {
+  if (qty <= 0) return 0
+  if (p.storageUnit === 'l') return Math.round(qty * 100) / 100
+  if (p.storageUnit === 'bouteille') {
+    const volMl = p.bottleVolumeMl || (p.dosesPerBottle ? p.dosesPerBottle * (p.servingMl || 50) : 750)
+    return Math.round((qty * volMl) / 10) / 100
+  }
+  if (p.storageUnit === 'unite' || p.storageUnit === 'piece') {
+    // Si bière ou canette/soft, 33 cl ou volume spécifique
+    const volMl = p.bottleVolumeMl || (p.categoryId === 'bieres' || p.categoryId === 'eaux-soft' ? 330 : 0)
+    return Math.round((qty * volMl) / 10) / 100
+  }
+  if (p.storageUnit === 'verre') {
+    const volMl = p.servingMl || 50
+    return Math.round((qty * volMl) / 10) / 100
+  }
+  return 0
+}
+
+export type TimePeriod = 'jour' | 'semaine' | 'mois' | 'annee'
+
+export function getFilteredMovements(period: TimePeriod, referenceDate = DEMO_TODAY) {
+  const ref = new Date(referenceDate)
+  return MOVEMENTS.filter((m) => {
+    const d = new Date(m.date)
+    if (period === 'jour') {
+      return m.date.slice(0, 10) === referenceDate.slice(0, 10)
+    }
+    if (period === 'semaine') {
+      const diffDays = (ref.getTime() - d.getTime()) / (1000 * 3600 * 24)
+      return diffDays >= 0 && diffDays <= 7
+    }
+    if (period === 'mois') {
+      return m.date.slice(0, 7) === referenceDate.slice(0, 7)
+    }
+    if (period === 'annee') {
+      return m.date.slice(0, 4) === referenceDate.slice(0, 4)
+    }
+    return true
+  })
+}
+
+export function totalSalesStats(period: TimePeriod = 'mois', referenceDate = DEMO_TODAY) {
+  const movs = getFilteredMovements(period, referenceDate)
+  const salesMovs = movs.filter((m) => m.type === 'vente')
+  const totalQty = salesMovs.reduce((s, m) => s + Math.abs(m.quantity), 0)
+  const totalValue = salesMovs.reduce((s, m) => {
+    const p = PRODUCTS.find((prod) => prod.id === m.productId)
+    const price = p?.priceFormats?.[0]?.price ?? (CUMP[m.productId] ? CUMP[m.productId]! * 3 : 80)
+    return s + Math.abs(m.quantity) * price
+  }, 0)
+  return { totalQty, totalValue: Math.round(totalValue) }
+}
+
+export function totalPurchasesStats(period: TimePeriod = 'mois', referenceDate = DEMO_TODAY) {
+  const movs = getFilteredMovements(period, referenceDate)
+  const purchaseMovs = movs.filter((m) => m.type === 'entree_fournisseur')
+  const totalQty = purchaseMovs.reduce((s, m) => s + Math.abs(m.quantity), 0)
+  const totalValue = purchaseMovs.reduce((s, m) => s + (m.value ?? (m.unitCost ? m.unitCost * m.quantity : 0)), 0)
+  return { totalQty, totalValue: Math.round(totalValue) }
+}
+
+export function marginAndLossStats(period: TimePeriod = 'mois', referenceDate = DEMO_TODAY) {
+  const sales = totalSalesStats(period, referenceDate).totalValue
+  const purchases = totalPurchasesStats(period, referenceDate).totalValue
+  const losses = lossesValue()
+  const grossMargin = sales - purchases
+  const marginRate = sales > 0 ? (grossMargin / sales) * 100 : 0
+  const lossRate = sales > 0 ? (losses / sales) * 100 : 0
+  return {
+    sales,
+    purchases,
+    grossMargin,
+    marginRate: Math.max(0, Math.round(marginRate * 10) / 10),
+    losses,
+    lossRate: Math.round(lossRate * 10) / 10,
+  }
+}
+
+export function serviceLossesComparison() {
+  const barLosses = OUTFLOWS.filter((o) => o.location === 'bar' && o.status === 'acceptee').reduce((s, o) => s + (o.value ?? 0), 0)
+  const cuisineLosses = OUTFLOWS.filter((o) => o.location === 'cuisine' && o.status === 'acceptee').reduce((s, o) => s + (o.value ?? 0), 0)
+  const total = barLosses + cuisineLosses
+  const mostCostlyLocation: 'bar' | 'cuisine' = barLosses >= cuisineLosses ? 'bar' : 'cuisine'
+  const mostCostlyAmount = Math.max(barLosses, cuisineLosses)
+  const mostCostlyPct = total > 0 ? Math.round((mostCostlyAmount / total) * 100) : 50
+
+  return {
+    barLosses,
+    cuisineLosses,
+    totalLosses: total,
+    mostCostlyLocation,
+    mostCostlyAmount,
+    mostCostlyPct,
+  }
+}
+
+export function topBestsellers(limit = 5) {
+  const map = new Map<string, { qty: number; value: number }>()
+  for (const m of MOVEMENTS) {
+    if (m.type !== 'vente') continue
+    const curr = map.get(m.productId) ?? { qty: 0, value: 0 }
+    const p = PRODUCTS.find((prod) => prod.id === m.productId)
+    const price = p?.priceFormats?.[0]?.price ?? (CUMP[m.productId] ? CUMP[m.productId]! * 3 : 80)
+    curr.qty += Math.abs(m.quantity)
+    curr.value += Math.abs(m.quantity) * price
+    map.set(m.productId, curr)
+  }
+  return Array.from(map.entries())
+    .map(([productId, stats]) => ({
+      product: PRODUCTS.find((p) => p.id === productId)!,
+      qty: stats.qty,
+      value: Math.round(stats.value),
+    }))
+    .filter((x) => !!x.product)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, limit)
+}
+
+export function topUnderperformers(limit = 5) {
+  const salesMap = new Map<string, number>()
+  for (const m of MOVEMENTS) {
+    if (m.type === 'vente') {
+      salesMap.set(m.productId, (salesMap.get(m.productId) ?? 0) + Math.abs(m.quantity))
+    }
+  }
+  return PRODUCTS.filter((p) => p.active)
+    .map((p) => ({
+      product: p,
+      qty: salesMap.get(p.id) ?? 0,
+      stock: stockAt('bar', p.id) + stockAt('economat', p.id),
+    }))
+    .sort((a, b) => a.qty - b.qty)
+    .slice(0, limit)
+}
+
+export function topPartialDeliveryProducts(limit = 5) {
+  const map = new Map<string, { count: number; missingQty: number }>()
+
+  for (const po of PURCHASE_ORDERS) {
+    if (po.status === 'partiellement_recue') {
+      for (const it of po.items) {
+        const diff = it.qtyOrdered - it.qtyReceived
+        if (diff > 0) {
+          const c = map.get(it.productId) ?? { count: 0, missingQty: 0 }
+          c.count++
+          c.missingQty += diff
+          map.set(it.productId, c)
+        }
+      }
+    }
+  }
+
+  for (const r of REQUISITIONS) {
+    if (r.status === 'partiellement_livre') {
+      for (const it of r.items) {
+        const diff = it.qtyRequested - it.qtyDelivered
+        if (diff > 0) {
+          const c = map.get(it.productId) ?? { count: 0, missingQty: 0 }
+          c.count++
+          c.missingQty += diff
+          map.set(it.productId, c)
+        }
+      }
+    }
+  }
+
+  return Array.from(map.entries())
+    .map(([productId, stats]) => ({
+      product: PRODUCTS.find((p) => p.id === productId)!,
+      partialCount: stats.count,
+      missingQty: stats.missingQty,
+    }))
+    .filter((x) => !!x.product)
+    .sort((a, b) => b.missingQty - a.missingQty)
+    .slice(0, limit)
 }
 
 export function economatReplenishList(): { product: Product; qty: number }[] {
@@ -152,7 +369,7 @@ export interface AppNotification {
   link?: string
 }
 
-export function notificationsFor(role: 'admin' | 'economat' | 'bar' | 'cuisine'): AppNotification[] {
+export function notificationsFor(role: Role): AppNotification[] {
   const out: AppNotification[] = []
 
   if (role === 'admin') {
@@ -190,26 +407,29 @@ export function notificationsFor(role: 'admin' | 'economat' | 'bar' | 'cuisine')
     }
   }
 
-  if (role === 'bar' || role === 'cuisine') {
-    for (const a of alertsFor(role)) {
-      out.push({
-        id: `alert:${a.id}`,
-        title: `Stock critique — ${PRODUCTS.find((p) => p.id === a.productId)?.name ?? a.productId}`,
-        detail: `${a.currentQty}/${a.minStock}`,
-        date: a.date,
-        severity: 'error',
-        link: `/produits/${a.productId}`,
-      })
-    }
-    for (const o of outflowsFor(role).filter((o) => o.status !== 'en_attente').slice(0, 3)) {
-      out.push({
-        id: `outflow-resolved:${o.id}`,
-        title: o.status === 'acceptee' ? `Sortie hors-vente acceptée — ${o.id}` : `Sortie hors-vente rejetée — ${o.id}`,
-        detail: PRODUCTS.find((p) => p.id === o.productId)?.name ?? o.productId,
-        date: o.validatedDate ?? o.date,
-        severity: o.status === 'acceptee' ? 'info' : 'warning',
-        link: `/${role}/sorties-hors-vente`,
-      })
+  if (role === 'bar' || role === 'cuisine' || role === 'service') {
+    const locs: ('bar' | 'cuisine')[] = role === 'service' ? ['bar', 'cuisine'] : [role]
+    for (const loc of locs) {
+      for (const a of alertsFor(loc)) {
+        out.push({
+          id: `alert:${a.id}`,
+          title: `Stock critique — ${PRODUCTS.find((p) => p.id === a.productId)?.name ?? a.productId}`,
+          detail: `${a.currentQty}/${a.minStock} (${LOCATION_LABEL[loc]})`,
+          date: a.date,
+          severity: 'error',
+          link: `/produits/${a.productId}`,
+        })
+      }
+      for (const o of outflowsFor(loc).filter((o) => o.status !== 'en_attente').slice(0, 3)) {
+        out.push({
+          id: `outflow-resolved:${o.id}`,
+          title: o.status === 'acceptee' ? `Sortie acceptée — ${o.id}` : `Sortie rejetée — ${o.id}`,
+          detail: `${PRODUCTS.find((p) => p.id === o.productId)?.name ?? o.productId} (${LOCATION_LABEL[loc]})`,
+          date: o.validatedDate ?? o.date,
+          severity: o.status === 'acceptee' ? 'info' : 'warning',
+          link: `/service/sorties-hors-vente?service=${loc}`,
+        })
+      }
     }
   }
 
@@ -301,6 +521,29 @@ export function allAnomalies(): Anomaly[] {
       location: a.location,
       link: `/produits/${a.productId}`,
     })
+  }
+
+  // Anticipation IA : Bouteilles entamées au Bar avec doses restantes faibles (<= 10 doses ou < 1 btl pleine)
+  for (const p of PRODUCTS) {
+    if (!p.active || p.storageUnit !== 'bouteille' || !p.dosesPerBottle) continue
+    const barStock = BALANCES.bar[p.id] ?? 0
+    if (barStock <= 0) continue
+    const breakdown = stockDoseBreakdown('bar', p.id)
+    // S'il n'y a plus de bouteilles pleines en réserve au bar et qu'il ne reste que le fond entamé (<= 10 doses)
+    // ou que le stock total bar est <= 10 doses
+    const totalDosesRemaining = breakdown.totalDoses
+    if (totalDosesRemaining > 0 && totalDosesRemaining <= 10) {
+      out.push({
+        id: `anticipation-dose:${p.id}`,
+        type: 'rupture',
+        title: `Anticipation IA : Fond de bouteille critique — ${p.name}`,
+        detail: `Il ne reste que ${totalDosesRemaining} dose(s) (${(totalDosesRemaining * (p.servingCl ?? 5))} cl) au Bar. Suggestion IA : préparer un bon de prélèvement avant rupture de service.`,
+        severity: totalDosesRemaining <= 5 ? 'critique' : 'elevee',
+        date: DEMO_TODAY,
+        location: 'bar',
+        link: `/produits/${p.id}`,
+      })
+    }
   }
 
   for (const m of MOVEMENTS) {
@@ -403,10 +646,23 @@ export function productsToReplenishWithQuotes() {
   const extra = barCuisineAlerts
     .filter((a) => !list.some((l) => l.product.id === a.productId))
     .map((a) => ({ product: PRODUCTS.find((p) => p.id === a.productId)!, qty: a.currentQty }))
-  return [...list, ...extra].map(({ product, qty }) => ({
+
+  // Ajouter les spiritueux avec anticipation sur fond de bouteille critique (<= 10 doses)
+  const lowDoseProducts = PRODUCTS.filter((p) => {
+    if (!p.active || p.storageUnit !== 'bouteille' || !p.dosesPerBottle) return false
+    const barQty = BALANCES.bar[p.id] ?? 0
+    if (barQty <= 0) return false
+    const breakdown = stockDoseBreakdown('bar', p.id)
+    return breakdown.totalDoses > 0 && breakdown.totalDoses <= 10
+  }).map((p) => ({
+    product: p,
+    qty: BALANCES.bar[p.id] ?? 0,
+  })).filter((item) => !list.some((l) => l.product.id === item.product.id) && !extra.some((e) => e.product.id === item.product.id))
+
+  return [...list, ...extra, ...lowDoseProducts].map(({ product, qty }) => ({
     product,
     currentQty: qty,
-    urgent: qty <= product.minStock * 0.5,
+    urgent: qty <= product.minStock * 0.5 || (product.storageUnit === 'bouteille' && qty < 1),
     quotes: supplierRecommendations(product.id, qty <= product.minStock * 0.5),
   }))
 }
