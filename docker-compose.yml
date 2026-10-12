@@ -1,0 +1,18 @@
+services:
+  habanera-mvp:
+    build: .
+    image: izemx/habanera-mvp:latest
+    container_name: habanera-mvp
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      API_PORT: 8787
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/api/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
