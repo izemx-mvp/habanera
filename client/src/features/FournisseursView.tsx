@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Sparkles, ShoppingCart } from 'lucide-react'
 import { PageHeader, Section, Card, Empty } from '@/components/ui'
-import { fmtMAD, productsToReplenishWithQuotes } from '@/data/selectors'
+import { fmtMAD, formatStockDisplay, productsToReplenishWithQuotes } from '@/data/selectors'
 import { createPurchaseOrder } from '@/data/actions'
 import { PERSONA_USER_ID } from '@/data/referentials'
 import { useAppStore } from '@/store/app-store'
@@ -36,7 +36,7 @@ export function FournisseursView() {
                   <div>
                     <div className="text-[14px] font-medium text-ink-900 dark:text-ink-50">{product.name}</div>
                     <div className="text-[12px] text-ink-500 dark:text-ink-400">
-                      Stock actuel : {currentQty} {product.storageUnit} · Seuil : {product.minStock}
+                      Stock actuel : {formatStockDisplay(currentQty, product.id)} · Seuil : {product.minStock} {product.storageUnit}
                     </div>
                   </div>
                   {urgent && (

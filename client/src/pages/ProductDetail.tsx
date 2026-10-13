@@ -3,9 +3,10 @@ import { ArrowLeft } from 'lucide-react'
 import { PageHeader, Section, Card, Stat, Tag } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { productById, CATEGORY_LABEL } from '@/data/catalog'
-import { cumpOf, fmtDateTime, fmtMAD, LOCATION_LABEL, MOVEMENT_TYPE_LABEL, movementsForProduct, stockAt } from '@/data/selectors'
+import { cumpOf, fmtDateTime, fmtMAD, formatMovementQuantity, formatStockDisplay, LOCATION_LABEL, MOVEMENT_TYPE_LABEL, movementsForProduct, stockAt } from '@/data/selectors'
 import { useAppStore } from '@/store/app-store'
 import { useDataVersion } from '@/store/data-version'
+import clsx from 'clsx'
 
 export default function ProductDetail() {
   useDataVersion()
@@ -102,8 +103,24 @@ export default function ProductDetail() {
                 { key: 'date', label: 'Date', render: (m) => fmtDateTime(m.date), sortValue: (m) => m.date },
                 { key: 'type', label: 'Type', render: (m) => MOVEMENT_TYPE_LABEL[m.type] },
                 { key: 'loc', label: 'Service', render: (m) => LOCATION_LABEL[m.location] },
-                { key: 'qty', label: 'Quantité', render: (m) => (m.quantity > 0 ? `+${m.quantity}` : m.quantity) },
-                { key: 'before', label: 'Avant → après', render: (m) => `${m.stockBefore} → ${m.stockAfter}` },
+                {
+                  key: 'qty',
+                  label: 'Quantité',
+                  render: (m) => {
+                    const isPositive = m.quantity > 0
+                    return (
+                      <span
+                        className={clsx(
+                          'font-semibold text-xs',
+                          isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                        )}
+                      >
+                        {formatMovementQuantity(m)}
+                      </span>
+                    )
+                  },
+                },
+                { key: 'before', label: 'Avant → après', render: (m) => `${formatStockDisplay(m.stockBefore, m.productId)} → ${formatStockDisplay(m.stockAfter, m.productId)}` },
                 { key: 'value', label: 'Valeur', render: (m) => (m.value != null ? fmtMAD(m.value) : '—') },
               ]}
             />

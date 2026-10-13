@@ -95,7 +95,7 @@ export function applyMovement(opts: {
   unitCost?: number | null
 }) {
   const before = balances[opts.location][opts.productId] ?? 0
-  const after = Math.max(0, before + opts.delta)
+  const after = Math.max(0, Math.round((before + opts.delta) * 10000) / 10000)
   balances[opts.location][opts.productId] = after
   const unitCost = opts.unitCost ?? null
   const quantity = after - before
@@ -734,10 +734,14 @@ export const MOVEMENTS = movements
 export const BALANCES = balances
 export const CUMP = cump
 export const REAL_STOCKS: Record<StockLocationId, Record<string, number>> = { economat: {}, bar: {}, cuisine: {} }
+export const THEORETICAL_STOCKS: Record<StockLocationId, Record<string, number>> = { economat: {}, bar: {}, cuisine: {} }
 for (const p of PRODUCTS) {
   REAL_STOCKS.economat[p.id] = balances.economat[p.id] ?? 0
   REAL_STOCKS.bar[p.id] = balances.bar[p.id] ?? 0
   REAL_STOCKS.cuisine[p.id] = balances.cuisine[p.id] ?? 0
+  THEORETICAL_STOCKS.economat[p.id] = balances.economat[p.id] ?? 0
+  THEORETICAL_STOCKS.bar[p.id] = balances.bar[p.id] ?? 0
+  THEORETICAL_STOCKS.cuisine[p.id] = balances.cuisine[p.id] ?? 0
 }
 export const SUPPLIERS_REF = SUPPLIERS
 export const USERS_REF = USERS

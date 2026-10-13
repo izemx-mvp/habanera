@@ -12,7 +12,6 @@ import {
   X,
   ListTree,
   ShieldAlert,
-  Building2,
   Bot,
   Sliders,
 } from 'lucide-react'
@@ -49,7 +48,6 @@ export const NAV_BY_ROLE: Record<Role, { to: string; label: string; icon: any; e
     { to: '/economat/stock', label: 'Stock central', icon: Boxes },
     { to: '/economat/prelevements', label: 'Bons de prélèvement reçus', icon: ClipboardList },
     { to: '/economat/commandes', label: 'Fournisseurs & commandes', icon: Truck },
-    { to: '/economat/fournisseurs', label: 'Recommandations IA', icon: Building2 },
     { to: '/economat/mouvements', label: 'Mouvements de stock', icon: ListTree },
   ],
   service: [

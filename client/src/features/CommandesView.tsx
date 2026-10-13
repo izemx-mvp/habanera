@@ -22,7 +22,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { LineItemsEditor, type Line } from '@/components/LineItemsEditor'
 import { PRODUCTS, productById } from '@/data/catalog'
 import { PURCHASE_ORDERS } from '@/data/generate'
-import { fmtDate, fmtMAD, PO_STATUS_LABEL, receiptsFor, supplierName, productsToReplenishWithQuotes } from '@/data/selectors'
+import { fmtDate, fmtMAD, formatStockDisplay, PO_STATUS_LABEL, receiptsFor, supplierName, productsToReplenishWithQuotes } from '@/data/selectors'
 import {
   createPurchaseOrder,
   receivePurchaseOrder,
@@ -397,7 +397,7 @@ export function CommandesView() {
                       <div>
                         <div className="font-semibold text-sm text-ink-900 dark:text-ink-100">{product.name}</div>
                         <div className="text-xs text-ink-500">
-                          Stock actuel : {currentQty} {product.storageUnit} · Seuil Économat : {product.minStock}
+                          Stock actuel : {formatStockDisplay(currentQty, product.id)} · Seuil Économat : {product.minStock} {product.storageUnit}
                         </div>
                       </div>
                       {urgent && (

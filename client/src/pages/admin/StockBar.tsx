@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertCircle, Sparkles, Check, Edit3 } from 'lucide-react'
+import { AlertCircle, Sparkles, Check, Edit3, Sliders } from 'lucide-react'
 import clsx from 'clsx'
 import { PageHeader, Section, Stat, FieldLabel } from '@/components/ui'
 import { Drawer } from '@/components/Drawer'
 import { DataTable } from '@/components/DataTable'
 import { CATEGORY_LABEL, PRODUCTS } from '@/data/catalog'
-import { stockAt, realStockAt, stockDoseBreakdown, productVolumeLiters } from '@/data/selectors'
-import { recordPhysicalStock } from '@/data/actions'
+import { realStockAt, theoreticalStockAt, stockDoseBreakdown, productVolumeLiters } from '@/data/selectors'
+import { setTheoreticalStock } from '@/data/actions'
 import { useDataVersion } from '@/store/data-version'
 import type { Product } from '@/data/types'
 
@@ -15,9 +15,9 @@ export default function AdminStockBar() {
   useDataVersion()
   const navigate = useNavigate()
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [inventoryDrawerOpen, setInventoryDrawerOpen] = useState(false)
-  const [physicalCount, setPhysicalCount] = useState<number>(0)
-  const [inventoryComment, setInventoryComment] = useState('')
+  const [theoreticalDrawerOpen, setTheoreticalDrawerOpen] = useState(false)
+  const [theoInput, setTheoInput] = useState<number>(0)
+  const [theoComment, setTheoComment] = useState('')
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
   // Produits attribués au Bar
@@ -28,12 +28,15 @@ export default function AdminStockBar() {
   let totalDiscrepancies = 0
 
   const rows = barProducts.map((p) => {
-    const theoretical = stockAt('bar', p.id)
+    // Stock Théorique (Fixe de référence, modifiable manuellement par l'Administrateur)
+    const theoretical = theoreticalStockAt('bar', p.id)
+    // Stock Réel (Physique) : Recalculé et mis à jour automatiquement selon les flux réels (ventes Z, réceptions)
     const real = realStockAt('bar', p.id)
     const variance = real - theoretical
     if (Math.abs(variance) > 0.01) totalDiscrepancies++
 
-    const dosesInfo = stockDoseBreakdown('bar', p.id)
+    const dosesInfo = stockDoseBreakdown('bar', p.id, real)
+    const theoDosesInfo = stockDoseBreakdown('bar', p.id, theoretical)
 
     return {
       product: p,
@@ -41,32 +44,33 @@ export default function AdminStockBar() {
       real,
       variance,
       dosesInfo,
+      theoDosesInfo,
     }
   })
 
-  function handleOpenInventory(p: Product, currentReal: number) {
+  function handleOpenTheoretical(p: Product, currentTheo: number) {
     setSelectedProduct(p)
-    setPhysicalCount(currentReal)
-    setInventoryComment('')
-    setInventoryDrawerOpen(true)
+    setTheoInput(currentTheo)
+    setTheoComment('')
+    setTheoreticalDrawerOpen(true)
     setSuccessMsg(null)
   }
 
-  function handleSaveInventory() {
+  function handleSaveTheoretical() {
     if (!selectedProduct) return
-    const res = recordPhysicalStock(
+    const res = setTheoreticalStock(
       'bar',
       selectedProduct.id,
-      physicalCount,
+      theoInput,
       'usr-admin-1',
-      inventoryComment || 'Relevé physique Bar'
+      theoComment || 'Réajustement manuel Stock Théorique Bar'
     )
     if (res.ok) {
-      setSuccessMsg(`Inventaire physique enregistré pour ${selectedProduct.name}`)
+      setSuccessMsg(`Stock Théorique de référence mis à jour pour ${selectedProduct.name}`)
       setTimeout(() => {
-        setInventoryDrawerOpen(false)
+        setTheoreticalDrawerOpen(false)
         setSuccessMsg(null)
-      }, 1000)
+      }, 900)
     }
   }
 
@@ -74,16 +78,16 @@ export default function AdminStockBar() {
     <>
       <PageHeader
         title="Stock Bar"
-        subtitle="Suivi précis du Bar : Stock Théorique (flux J-1), Stock Réel compté, fonds de bouteilles et conversion en doses."
+        subtitle="Suivi précis du Bar : Stock Théorique fixe de référence (modifiable par l'Admin), Stock Réel recalculé automatiquement selon les flux réels."
         actions={
           <button
             className="btn-primary btn-sm"
             onClick={() => {
-              if (barProducts[0]) handleOpenInventory(barProducts[0], realStockAt('bar', barProducts[0].id))
+              if (barProducts[0]) handleOpenTheoretical(barProducts[0], theoreticalStockAt('bar', barProducts[0].id))
             }}
           >
-            <Edit3 size={14} />
-            Relevé d'inventaire rapide
+            <Sliders size={14} />
+            Ajuster la référence théorique
           </button>
         }
       />
@@ -93,26 +97,25 @@ export default function AdminStockBar() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <Stat label="Références au Bar" value={String(totalItems)} />
           <Stat
-            label="Écarts constatés (Théorique vs Réel)"
+            label="Écarts constatés (Réel vs Théorique)"
             value={String(totalDiscrepancies)}
             tone={totalDiscrepancies > 0 ? 'warning' : 'success'}
-            hint={totalDiscrepancies > 0 ? 'Vérifier les relevés physiques' : 'Aucun écart détecté'}
+            hint={totalDiscrepancies > 0 ? 'Écarts identifiés par rapport à la référence' : 'Tous les stocks sont conformes'}
           />
           <Stat
             label="Gestion des portions fines"
             value="Active"
-            hint="Doses & cl déduits en temps réel"
+            hint="Doses & cl déduits en temps réel via caisse Z"
           />
         </div>
 
-        {/* Info Banner Rule 3.1 & 3.2 */}
+        {/* Info Banner */}
         <div className="mb-6 p-4 rounded-xl bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 text-[13px] text-ink-700 dark:text-ink-300 flex items-start gap-3">
           <Sparkles className="text-copper shrink-0 mt-0.5" size={18} />
           <div>
-            <span className="font-semibold text-ink-900 dark:text-ink-100">Règle de gestion du Bar : </span>
-            Le stock fixe théorique est calculé automatiquement à partir des flux réels (ouvertures, ventes Z, transferts). 
-            Les bouteilles entamées sont décomptées en <strong>unités fines (doses de 5 cl)</strong>. Les alertes de réapprovisionnement d'urgence 
-            ne se déclenchent qu'au niveau central de l'Économat dès lors que le cumul global descend sous le seuil critique.
+            <span className="font-semibold text-ink-900 dark:text-ink-100">Logique de réconciliation : </span>
+            Le <strong>Stock Théorique (Fixe)</strong> représente la valeur de référence ajustable manuellement par l'Administrateur via l'icône de crayon.
+            Le <strong>Stock Réel (Physique)</strong> est recalculé en temps réel par le système à partir des mouvements réels (déductions automatiques des ventes Ticket Z et réceptions).
           </div>
         </div>
 
@@ -126,33 +129,70 @@ export default function AdminStockBar() {
           columns={[
             {
               key: 'name',
-              label: 'PRODUIT & DÉCLINAISONS',
+              label: 'PRODUIT',
               render: (r) => (
                 <div>
                   <div className="font-medium text-ink-900 dark:text-ink-100">{r.product.name}</div>
                   <div className="text-[11px] text-ink-500 dark:text-ink-400">
                     {CATEGORY_LABEL[r.product.categoryId]}
-                    {r.product.dosesPerBottle && (
-                      <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded bg-copper/10 text-copper font-medium">
-                        Bouteille / Dose : 1 btl = {r.product.dosesPerBottle} doses ({r.product.servingCl ?? 5} cl)
-                      </span>
-                    )}
-                    {r.product.packSize && (
-                      <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded bg-ink-200 dark:bg-ink-800 text-ink-600 dark:text-ink-300 font-medium">
-                        Bouteille / Pack de {r.product.packSize} u
-                      </span>
-                    )}
                   </div>
                 </div>
               ),
               sortValue: (r) => r.product.name,
             },
             {
+              key: 'declinaison',
+              label: 'DÉCLINAISON',
+              render: (r) => {
+                if (r.product.dosesPerBottle && r.product.storageUnit === 'bouteille') {
+                  return (
+                    <span className="inline-block px-2 py-0.5 rounded bg-copper/10 text-copper font-medium text-xs">
+                      Bouteille / {r.product.dosesPerBottle} doses ({r.product.servingCl ?? 5} cl)
+                    </span>
+                  )
+                }
+                if (r.product.packSize) {
+                  return (
+                    <span className="inline-block px-2 py-0.5 rounded bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-300 font-medium text-xs">
+                      Bouteille / Pack de {r.product.packSize} u
+                    </span>
+                  )
+                }
+                return (
+                  <span className="text-xs text-ink-500 font-medium">
+                    {r.product.storageUnit === 'bouteille' ? 'Bouteille scellée' : `Unité (${r.product.storageUnit})`}
+                  </span>
+                )
+              },
+            },
+            {
               key: 'theoretical',
-              label: 'STOCK THÉORIQUE',
+              label: 'STOCK THÉORIQUE (FIXE)',
+              render: (r) => (
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-ink-900 dark:text-ink-100">
+                    {r.theoDosesInfo.display}
+                  </span>
+                  <button
+                    className="p-1 text-ink-400 hover:text-copper transition rounded hover:bg-ink-100 dark:hover:bg-ink-800"
+                    title="Ajuster la référence théorique"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleOpenTheoretical(r.product, r.theoretical)
+                    }}
+                  >
+                    <Edit3 size={13} />
+                  </button>
+                </div>
+              ),
+              sortValue: (r) => r.theoretical,
+            },
+            {
+              key: 'real',
+              label: 'STOCK RÉEL (PHYSIQUE)',
               render: (r) => (
                 <div>
-                  <div className="font-semibold text-ink-900 dark:text-ink-100">
+                  <div className="font-medium text-ink-800 dark:text-ink-200">
                     {r.dosesInfo.display}
                   </div>
                   {r.dosesInfo.openBottleDetail && (
@@ -162,37 +202,6 @@ export default function AdminStockBar() {
                   )}
                 </div>
               ),
-              sortValue: (r) => r.theoretical,
-            },
-            {
-              key: 'real',
-              label: 'STOCK RÉEL (PHYSIQUE)',
-              render: (r) => {
-                const isSpirit = r.product.storageUnit === 'bouteille' && r.product.dosesPerBottle && r.product.dosesPerBottle > 1
-                const realFull = Math.floor(r.real)
-                const realOpen = Math.round((r.real - realFull) * (r.product.dosesPerBottle || 1))
-                const realDisplay = isSpirit && realOpen > 0
-                  ? (realFull === 0 ? `0 btl + ${realOpen} doses (${r.real.toFixed(2)} btl)` : `${realFull} btl & ${realOpen} doses (${r.real.toFixed(2)} btl)`)
-                  : `${r.real} ${r.product.storageUnit}`
-
-                return (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-ink-800 dark:text-ink-200">
-                      {realDisplay}
-                    </span>
-                    <button
-                      className="p-1 text-ink-400 hover:text-copper transition"
-                      title="Ajuster le relevé physique"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleOpenInventory(r.product, r.real)
-                      }}
-                    >
-                      <Edit3 size={13} />
-                    </button>
-                  </div>
-                )
-              },
               sortValue: (r) => r.real,
             },
             {
@@ -243,7 +252,7 @@ export default function AdminStockBar() {
                     )}
                   >
                     <AlertCircle size={12} />
-                    {varianceDetail} (Non conforme - Écart inventaire)
+                    {varianceDetail} (Non conforme)
                   </span>
                 )
               },
@@ -257,10 +266,10 @@ export default function AdminStockBar() {
                   className="btn-secondary btn-xs"
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleOpenInventory(r.product, r.real)
+                    handleOpenTheoretical(r.product, r.theoretical)
                   }}
                 >
-                  Compter
+                  Ajuster réf.
                 </button>
               ),
             },
@@ -268,19 +277,19 @@ export default function AdminStockBar() {
         />
       </Section>
 
-      {/* Drawer Inventaire Réel */}
+      {/* Drawer Ajustement Stock Théorique (Fixe) */}
       <Drawer
-        open={inventoryDrawerOpen}
-        onClose={() => setInventoryDrawerOpen(false)}
-        title={selectedProduct ? `Relevé physique · ${selectedProduct.name}` : "Relevé d'inventaire"}
-        subtitle="Enregistrez la quantité physique réellement constatée au Bar."
+        open={theoreticalDrawerOpen}
+        onClose={() => setTheoreticalDrawerOpen(false)}
+        title={selectedProduct ? `Stock Théorique (Fixe) · ${selectedProduct.name}` : "Ajuster la référence théorique"}
+        subtitle="Réajustez manuellement la valeur théorique de référence du produit au Bar."
         actions={
           <>
-            <button className="btn-secondary btn-sm" onClick={() => setInventoryDrawerOpen(false)}>
+            <button className="btn-secondary btn-sm" onClick={() => setTheoreticalDrawerOpen(false)}>
               Annuler
             </button>
-            <button className="btn-primary btn-sm" onClick={handleSaveInventory}>
-              Enregistrer l'inventaire
+            <button className="btn-primary btn-sm" onClick={handleSaveTheoretical}>
+              Enregistrer la référence
             </button>
           </>
         }
@@ -298,48 +307,48 @@ export default function AdminStockBar() {
               <FieldLabel>Produit sélectionné</FieldLabel>
               <div className="font-semibold text-ink-900 dark:text-ink-100">{selectedProduct.name}</div>
               <div className="text-xs text-ink-500">
-                Unité de stockage : {selectedProduct.storageUnit} · Déclinaison : {selectedProduct.dosesPerBottle ? `${selectedProduct.dosesPerBottle} doses/btl` : 'Standard'}
+                Catégorie : {CATEGORY_LABEL[selectedProduct.categoryId]} · Unité : {selectedProduct.storageUnit}
+                {selectedProduct.dosesPerBottle ? ` · Conditionnement : 1 btl = ${selectedProduct.dosesPerBottle} doses (${selectedProduct.servingCl ?? 5} cl)` : ''}
               </div>
             </div>
 
             <div className="p-3 bg-ink-50 dark:bg-ink-800/60 rounded-xl border border-ink-200 dark:border-ink-700 space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-ink-500">Stock Théorique actuel :</span>
+                <span className="text-ink-500">Stock Réel calculé (flux réels) :</span>
                 <span className="font-semibold text-ink-900 dark:text-ink-100">
-                  {stockAt('bar', selectedProduct.id)} {selectedProduct.storageUnit}
+                  {stockDoseBreakdown('bar', selectedProduct.id, realStockAt('bar', selectedProduct.id)).display}
                 </span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-ink-500">Détail des portions :</span>
-                <span className="text-copper font-medium">
-                  {stockDoseBreakdown('bar', selectedProduct.id).display}
-                </span>
+              <div className="text-[11px] text-ink-400">
+                (Mis à jour automatiquement par le système via les ventes Z et réceptions)
               </div>
             </div>
 
             <div>
-              <FieldLabel>Quantité physique réellement comptée ({selectedProduct.storageUnit})</FieldLabel>
+              <FieldLabel>Nouvelle valeur théorique de référence ({selectedProduct.storageUnit})</FieldLabel>
               <input
                 type="number"
-                step="0.01"
+                step={selectedProduct.dosesPerBottle ? '0.01' : '1'}
                 min="0"
                 className="input"
-                value={physicalCount}
-                onChange={(e) => setPhysicalCount(parseFloat(e.target.value) || 0)}
+                value={theoInput}
+                onChange={(e) => setTheoInput(parseFloat(e.target.value) || 0)}
               />
-              <span className="text-[11px] text-ink-400 mt-1 block">
-                Exemple : 4 bouteilles pleines et 3 doses restantes = {(4 + 3 / (selectedProduct.dosesPerBottle || 15)).toFixed(2)} btl
-              </span>
+              {selectedProduct.dosesPerBottle && (
+                <span className="text-[11px] text-copper mt-1 block">
+                  Équivalence : {theoInput} bouteille(s) = {Math.round(theoInput * selectedProduct.dosesPerBottle)} doses de {selectedProduct.servingCl ?? 5} cl
+                </span>
+              )}
             </div>
 
             <div>
-              <FieldLabel>Commentaire ou motif de l'écart (optionnel)</FieldLabel>
+              <FieldLabel>Commentaire ou motif du réajustement (facultatif)</FieldLabel>
               <textarea
                 rows={3}
                 className="input"
-                placeholder="Ex. Bouteille entamée retrouvée derrière le comptoir, casse non déclarée..."
-                value={inventoryComment}
-                onChange={(e) => setInventoryComment(e.target.value)}
+                placeholder="Ex. Réajustement de dotation théorique de référence Bar..."
+                value={theoComment}
+                onChange={(e) => setTheoComment(e.target.value)}
               />
             </div>
           </div>

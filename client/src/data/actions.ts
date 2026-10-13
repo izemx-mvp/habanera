@@ -1,7 +1,7 @@
 // Couche d'actions — toutes les opérations d'écriture passent par ici (jamais une mutation
 // directe depuis un écran), pour garantir les mêmes contrôles qu'un vrai moteur serveur :
 // pas de quantité nulle ou négative, pas de double mouvement, pas de stock négatif.
-import { applyMovement, BALANCES, CUMP, GOODS_RECEIPTS, OUTFLOWS, PURCHASE_ORDERS, REAL_STOCKS, REQUISITIONS } from './generate'
+import { applyMovement, BALANCES, CUMP, GOODS_RECEIPTS, OUTFLOWS, PURCHASE_ORDERS, REAL_STOCKS, REQUISITIONS, THEORETICAL_STOCKS } from './generate'
 import { PRODUCTS, productById } from './catalog'
 import { SUPPLIERS } from './referentials'
 import { useDataVersion } from '@/store/data-version'
@@ -502,6 +502,21 @@ export function recordPhysicalStock(
       unitCost: CUMP[productId],
     })
   }
+  bump()
+  return { ok: true }
+}
+
+export function setTheoreticalStock(
+  location: StockLocationId,
+  productId: string,
+  newQty: number,
+  _userId?: string,
+  _comment?: string,
+): Result {
+  const p = productById(productId)
+  if (!p) return { ok: false, error: 'Produit introuvable.' }
+  if (newQty < 0) return { ok: false, error: 'Le stock théorique ne peut pas être négatif.' }
+  THEORETICAL_STOCKS[location][productId] = newQty
   bump()
   return { ok: true }
 }

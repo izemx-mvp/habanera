@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Edit3, AlertCircle, Sparkles, Check } from 'lucide-react'
+import { AlertCircle, Sparkles, Check, Edit3 } from 'lucide-react'
 import clsx from 'clsx'
 import { PageHeader, Section, Stat, FieldLabel } from '@/components/ui'
 import { Drawer } from '@/components/Drawer'
 import { DataTable } from '@/components/DataTable'
 import { CATEGORY_LABEL, PRODUCTS } from '@/data/catalog'
-import { stockAt, realStockAt, stockDoseBreakdown, productVolumeLiters, LOCATION_LABEL } from '@/data/selectors'
-import { recordPhysicalStock } from '@/data/actions'
+import { realStockAt, theoreticalStockAt, stockDoseBreakdown, productVolumeLiters } from '@/data/selectors'
+import { setTheoreticalStock } from '@/data/actions'
 import { useDataVersion } from '@/store/data-version'
 import type { Product } from '@/data/types'
 
@@ -15,24 +15,26 @@ export default function ServiceStock() {
   useDataVersion()
   const navigate = useNavigate()
 
-  // Drawer state for physical count
+  // Drawer state for theoretical stock adjustment
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [inventoryTargetLocation, setInventoryTargetLocation] = useState<'bar' | 'cuisine'>('bar')
-  const [inventoryDrawerOpen, setInventoryDrawerOpen] = useState(false)
-  const [physicalCount, setPhysicalCount] = useState<number>(0)
-  const [inventoryComment, setInventoryComment] = useState('')
+  const [theoreticalDrawerOpen, setTheoreticalDrawerOpen] = useState(false)
+  const [theoInput, setTheoInput] = useState<number>(0)
+  const [theoComment, setTheoComment] = useState('')
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
-  // Dans la configuration actuelle, on utilise uniquement la carte des boissons du Bar
-  // comme produits partagés Bar / Cuisine
+  // Dans la configuration actuelle, on utilise la carte des boissons du Bar (partagée Bar / Cuisine)
   const displayedProducts = PRODUCTS.filter((p) => p.active && p.location === 'bar')
 
   // Lignes de stock pour les produits Bar / Cuisine
   const rows = displayedProducts.map((p) => {
-    const theoretical = stockAt('bar', p.id)
+    // Stock Théorique (Fixe de référence, modifiable par l'Administrateur / Manager)
+    const theoretical = theoreticalStockAt('bar', p.id)
+    // Stock Réel (Physique) : Recalculé automatiquement selon les flux réels (ventes Z, réceptions)
     const real = realStockAt('bar', p.id)
     const variance = real - theoretical
-    const dosesInfo = stockDoseBreakdown('bar', p.id)
+
+    const dosesInfo = stockDoseBreakdown('bar', p.id, real)
+    const theoDosesInfo = stockDoseBreakdown('bar', p.id, theoretical)
 
     return {
       product: p,
@@ -41,103 +43,144 @@ export default function ServiceStock() {
       real,
       variance,
       dosesInfo,
+      theoDosesInfo,
     }
   })
 
-  function handleOpenInventory(p: Product, currentReal: number) {
+  function handleOpenTheoretical(p: Product, currentTheo: number) {
     setSelectedProduct(p)
-    setInventoryTargetLocation('bar')
-    setPhysicalCount(currentReal)
-    setInventoryComment('')
-    setInventoryDrawerOpen(true)
+    setTheoInput(currentTheo)
+    setTheoComment('')
+    setTheoreticalDrawerOpen(true)
     setSuccessMsg(null)
   }
 
-  function handleSaveInventory() {
+  function handleSaveTheoretical() {
     if (!selectedProduct) return
-    const res = recordPhysicalStock(
+    const res = setTheoreticalStock(
       'bar',
       selectedProduct.id,
-      physicalCount,
-      'u-service-1',
-      inventoryComment || `Inventaire physique terrain Bar / Cuisine`
+      theoInput,
+      'usr-service-1',
+      theoComment || 'Réajustement stock théorique de référence'
     )
     if (res.ok) {
-      setSuccessMsg(`Inventaire physique enregistré pour ${selectedProduct.name}`)
+      setSuccessMsg(`Stock Théorique de référence enregistré pour ${selectedProduct.name}`)
       setTimeout(() => {
-        setInventoryDrawerOpen(false)
+        setTheoreticalDrawerOpen(false)
         setSuccessMsg(null)
-      }, 1000)
+      }, 900)
     }
   }
 
   return (
     <>
       <PageHeader
-        title="Stock Bar / Cuisine"
-        subtitle="Suivi des stocks fixes, fiches produits, inventaires physiques et gestion fine des portions (doses & cl)."
+        title="Stock (Bar / Cuisine)"
+        subtitle="Gestion unifiée des stocks de service : Stock Théorique fixe de référence et Stock Réel recalculé en continu selon les ventes Z."
       />
 
       <Section>
-        {/* KPI CARDS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Stat label="Articles en stock" value={String(displayedProducts.length)} hint="Boissons & spiritueux" />
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <Stat label="Articles en service" value={String(displayedProducts.length)} />
           <Stat
-            label="Écarts constatés (Physique)"
+            label="Écarts constatés (Réel vs Référence)"
             value={String(rows.filter((r) => Math.abs(r.variance) > 0.01).length)}
             tone={rows.some((r) => Math.abs(r.variance) > 0.01) ? 'warning' : 'success'}
-            hint="Différences de comptage"
+            hint="Rapprochement avec le stock théorique de référence"
           />
-          <Stat label="Suivi doses & cl" value="Actif" hint="Spiritueux déduits en portions (5 cl)" />
-          <Stat label="Statut inventaire" value="À jour" tone="success" hint="Stock théorique calculé en continu" />
+          <Stat
+            label="Calcul continu des portions"
+            value="Actif"
+            hint="Doses & cl déduits en continu"
+          />
         </div>
 
-        {/* INFO NOTICE */}
+        {/* Explainability notice */}
         <div className="mb-6 p-4 rounded-xl bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 text-[13px] text-ink-700 dark:text-ink-300 flex items-start gap-3">
           <Sparkles className="text-copper shrink-0 mt-0.5" size={18} />
           <div>
-            <span className="font-semibold text-ink-900 dark:text-ink-100">Stock opérationnel unifié Bar / Cuisine : </span>
-            Toutes les références sont suivies avec leur stock théorique et leur stock physique réel. Les spiritueux décomptent mathématiquement les doses servies (5 cl) issues des caisses pour maintenir les bouteilles entamées sans rupture artificielle.
+            <span className="font-semibold text-ink-900 dark:text-ink-100">Logique d'inventaire opérationnel : </span>
+            Le <strong>Stock Réel (Physique)</strong> est calculé et actualisé en continu par le système selon les flux réels (clôtures de caisse Ticket Z et livraisons de bons de prélèvement).
+            Le <strong>Stock Théorique (Fixe)</strong> constitue la dotation de référence ajustable via l'icône de crayon.
           </div>
         </div>
 
-        {/* TABLE */}
+        {/* Tableau du stock avec colonnes séparées Produit et Déclinaison */}
         <DataTable
           rows={rows}
           onRowClick={(r) => navigate(`/produits/${r.product.id}`)}
-          searchKeys={(r) => `${r.product.name} ${LOCATION_LABEL[r.location]}`}
-          searchPlaceholder="Rechercher une boisson, un ingrédient, une référence…"
+          searchKeys={(r) => r.product.name}
+          searchPlaceholder="Rechercher une référence au service…"
           pageSize={15}
           columns={[
             {
               key: 'name',
-              label: 'PRODUIT & DÉCLINAISONS',
+              label: 'PRODUIT',
               render: (r) => (
                 <div>
                   <div className="font-medium text-ink-900 dark:text-ink-100">{r.product.name}</div>
                   <div className="text-[11px] text-ink-500 dark:text-ink-400">
                     {CATEGORY_LABEL[r.product.categoryId]}
-                    {r.product.dosesPerBottle && (
-                      <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded bg-copper/10 text-copper font-medium">
-                        Bouteille / Dose : 1 btl = {r.product.dosesPerBottle} doses ({r.product.servingCl ?? 5} cl)
-                      </span>
-                    )}
-                    {r.product.packSize && (
-                      <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded bg-ink-200 dark:bg-ink-800 text-ink-600 dark:text-ink-300 font-medium">
-                        Bouteille / Pack de {r.product.packSize} u
-                      </span>
-                    )}
                   </div>
                 </div>
               ),
               sortValue: (r) => r.product.name,
             },
             {
+              key: 'declinaison',
+              label: 'DÉCLINAISON',
+              render: (r) => {
+                if (r.product.dosesPerBottle && r.product.storageUnit === 'bouteille') {
+                  return (
+                    <span className="inline-block px-2 py-0.5 rounded bg-copper/10 text-copper font-medium text-xs">
+                      Bouteille / {r.product.dosesPerBottle} doses ({r.product.servingCl ?? 5} cl)
+                    </span>
+                  )
+                }
+                if (r.product.packSize) {
+                  return (
+                    <span className="inline-block px-2 py-0.5 rounded bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-300 font-medium text-xs">
+                      Bouteille / Pack de {r.product.packSize} u
+                    </span>
+                  )
+                }
+                return (
+                  <span className="text-xs text-ink-500 font-medium">
+                    {r.product.storageUnit === 'bouteille' ? 'Bouteille scellée' : `Unité (${r.product.storageUnit})`}
+                  </span>
+                )
+              },
+            },
+            {
               key: 'theoretical',
-              label: 'STOCK THÉORIQUE',
+              label: 'STOCK THÉORIQUE (FIXE)',
+              render: (r) => (
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-ink-900 dark:text-ink-100">
+                    {r.theoDosesInfo.display}
+                  </span>
+                  <button
+                    className="p-1 text-ink-400 hover:text-copper transition rounded hover:bg-ink-100 dark:hover:bg-ink-800"
+                    title="Ajuster la référence théorique"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleOpenTheoretical(r.product, r.theoretical)
+                    }}
+                  >
+                    <Edit3 size={13} />
+                  </button>
+                </div>
+              ),
+              sortValue: (r) => r.theoretical,
+            },
+            {
+              key: 'real',
+              label: 'STOCK RÉEL (PHYSIQUE)',
               render: (r) => (
                 <div>
-                  <div className="font-semibold text-ink-900 dark:text-ink-100">
+                  <div className="font-medium text-ink-800 dark:text-ink-200">
                     {r.dosesInfo.display}
                   </div>
                   {r.dosesInfo.openBottleDetail && (
@@ -147,37 +190,6 @@ export default function ServiceStock() {
                   )}
                 </div>
               ),
-              sortValue: (r) => r.theoretical,
-            },
-            {
-              key: 'real',
-              label: 'STOCK RÉEL (PHYSIQUE)',
-              render: (r) => {
-                const isSpirit = r.product.storageUnit === 'bouteille' && r.product.dosesPerBottle && r.product.dosesPerBottle > 1
-                const realFull = Math.floor(r.real)
-                const realOpen = Math.round((r.real - realFull) * (r.product.dosesPerBottle || 1))
-                const realDisplay = isSpirit && realOpen > 0
-                  ? (realFull === 0 ? `0 btl + ${realOpen} doses (${r.real.toFixed(2)} btl)` : `${realFull} btl & ${realOpen} doses (${r.real.toFixed(2)} btl)`)
-                  : `${r.real} ${r.product.storageUnit}`
-
-                return (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-ink-800 dark:text-ink-200">
-                      {realDisplay}
-                    </span>
-                    <button
-                      className="p-1 text-ink-400 hover:text-copper transition"
-                      title="Ajuster le relevé physique"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleOpenInventory(r.product, r.real)
-                      }}
-                    >
-                      <Edit3 size={13} />
-                    </button>
-                  </div>
-                )
-              },
               sortValue: (r) => r.real,
             },
             {
@@ -228,7 +240,7 @@ export default function ServiceStock() {
                     )}
                   >
                     <AlertCircle size={12} />
-                    {varianceDetail} (Non conforme - Écart inventaire)
+                    {varianceDetail} (Écart constaté)
                   </span>
                 )
               },
@@ -242,10 +254,10 @@ export default function ServiceStock() {
                   className="btn-secondary btn-xs"
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleOpenInventory(r.product, r.real)
+                    handleOpenTheoretical(r.product, r.theoretical)
                   }}
                 >
-                  Compter
+                  Ajuster réf.
                 </button>
               ),
             },
@@ -253,19 +265,19 @@ export default function ServiceStock() {
         />
       </Section>
 
-      {/* DRAWER INVENTAIRE PHYSIQUE */}
+      {/* DRAWER AJUSTEMENT STOCK THÉORIQUE DE RÉFÉRENCE */}
       <Drawer
-        open={inventoryDrawerOpen}
-        onClose={() => setInventoryDrawerOpen(false)}
-        title={selectedProduct ? `Relevé physique · ${selectedProduct.name}` : "Relevé d'inventaire"}
-        subtitle={`Service : ${LOCATION_LABEL[inventoryTargetLocation]}`}
+        open={theoreticalDrawerOpen}
+        onClose={() => setTheoreticalDrawerOpen(false)}
+        title={selectedProduct ? `Stock Théorique (Fixe) · ${selectedProduct.name}` : "Ajuster la référence théorique"}
+        subtitle="Ajustement de la dotation ou référence théorique au Bar / Cuisine."
         actions={
           <>
-            <button className="btn-secondary btn-sm" onClick={() => setInventoryDrawerOpen(false)}>
+            <button className="btn-secondary btn-sm" onClick={() => setTheoreticalDrawerOpen(false)}>
               Annuler
             </button>
-            <button className="btn-primary btn-sm" onClick={handleSaveInventory}>
-              Enregistrer l'inventaire
+            <button className="btn-primary btn-sm" onClick={handleSaveTheoretical}>
+              Enregistrer la référence
             </button>
           </>
         }
@@ -280,52 +292,51 @@ export default function ServiceStock() {
             )}
 
             <div>
-              <FieldLabel>Service concerné</FieldLabel>
-              <select
-                className="input"
-                value={inventoryTargetLocation}
-                onChange={(e) => setInventoryTargetLocation(e.target.value as 'bar' | 'cuisine')}
-              >
-                <option value="bar">Bar</option>
-                <option value="cuisine">Cuisine</option>
-              </select>
+              <FieldLabel>Produit sélectionné</FieldLabel>
+              <div className="font-semibold text-ink-900 dark:text-ink-100">{selectedProduct.name}</div>
+              <div className="text-xs text-ink-500">
+                Catégorie : {CATEGORY_LABEL[selectedProduct.categoryId]} · Unité : {selectedProduct.storageUnit}
+                {selectedProduct.dosesPerBottle ? ` · Conditionnement : 1 btl = ${selectedProduct.dosesPerBottle} doses (${selectedProduct.servingCl ?? 5} cl)` : ''}
+              </div>
             </div>
 
             <div className="p-3 bg-ink-50 dark:bg-ink-800/60 rounded-xl border border-ink-200 dark:border-ink-700 space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-ink-500">Stock Théorique actuel :</span>
+                <span className="text-ink-500">Stock Réel calculé en continu :</span>
                 <span className="font-semibold text-ink-900 dark:text-ink-100">
-                  {stockAt(inventoryTargetLocation, selectedProduct.id)} {selectedProduct.storageUnit}
+                  {stockDoseBreakdown('bar', selectedProduct.id, realStockAt('bar', selectedProduct.id)).display}
                 </span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-ink-500">Détail des portions :</span>
-                <span className="text-copper font-medium">
-                  {stockDoseBreakdown(inventoryTargetLocation, selectedProduct.id).display}
-                </span>
+              <div className="text-[11px] text-ink-400">
+                (Mis à jour automatiquement par le système via les ventes Z et réceptions)
               </div>
             </div>
 
             <div>
-              <FieldLabel>Quantité physique réellement constatée ({selectedProduct.storageUnit})</FieldLabel>
+              <FieldLabel>Nouvelle valeur théorique de référence ({selectedProduct.storageUnit})</FieldLabel>
               <input
                 type="number"
-                step="0.01"
+                step={selectedProduct.dosesPerBottle ? '0.01' : '1'}
                 min="0"
                 className="input"
-                value={physicalCount}
-                onChange={(e) => setPhysicalCount(parseFloat(e.target.value) || 0)}
+                value={theoInput}
+                onChange={(e) => setTheoInput(parseFloat(e.target.value) || 0)}
               />
+              {selectedProduct.dosesPerBottle && (
+                <span className="text-[11px] text-copper mt-1 block">
+                  Équivalence : {theoInput} bouteille(s) = {Math.round(theoInput * selectedProduct.dosesPerBottle)} doses de {selectedProduct.servingCl ?? 5} cl
+                </span>
+              )}
             </div>
 
             <div>
-              <FieldLabel>Commentaire ou motif de l'écart (optionnel)</FieldLabel>
+              <FieldLabel>Commentaire ou motif du réajustement (facultatif)</FieldLabel>
               <textarea
                 rows={3}
                 className="input"
-                placeholder="Ex. Bouteille entamée comptée, perte constatée lors du rush..."
-                value={inventoryComment}
-                onChange={(e) => setInventoryComment(e.target.value)}
+                placeholder="Ex. Réajustement de dotation théorique de référence Bar..."
+                value={theoComment}
+                onChange={(e) => setTheoComment(e.target.value)}
               />
             </div>
           </div>

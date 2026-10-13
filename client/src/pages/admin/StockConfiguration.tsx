@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Sliders, Check, Sparkles, Save } from 'lucide-react'
+import { Sliders, Check, Sparkles, Save, Upload } from 'lucide-react'
 import clsx from 'clsx'
 import { PageHeader, Section, Stat, FieldLabel } from '@/components/ui'
 import { Drawer } from '@/components/Drawer'
 import { DataTable } from '@/components/DataTable'
+import { ProductImportModal } from '@/components/ProductImportModal'
 import { CATEGORY_LABEL, PRODUCTS } from '@/data/catalog'
 import { setProductField } from '@/data/actions'
 import { useDataVersion } from '@/store/data-version'
@@ -14,6 +15,7 @@ export default function AdminStockConfiguration() {
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
   const [filterLoc, setFilterLoc] = useState<'all' | 'bar' | 'cuisine'>('all')
 
   // Edit fields
@@ -66,6 +68,12 @@ export default function AdminStockConfiguration() {
       <PageHeader
         title="Configuration du stock"
         subtitle="Paramétrage centralisé des règles de gestion : seuils Économat, conversions en doses/packs et modes de calcul Théorique vs Réel."
+        actions={
+          <button className="btn-primary btn-sm" onClick={() => setImportModalOpen(true)}>
+            <Upload size={14} />
+            Importer la liste des produits
+          </button>
+        }
       />
 
       <Section>
@@ -356,6 +364,11 @@ export default function AdminStockConfiguration() {
           </div>
         )}
       </Drawer>
+
+      <ProductImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+      />
     </>
   )
 }

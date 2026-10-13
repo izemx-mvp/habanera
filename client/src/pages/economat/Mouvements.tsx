@@ -5,7 +5,7 @@ import { PageHeader, Section } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { productById } from '@/data/catalog'
 import { MOVEMENTS } from '@/data/generate'
-import { fmtDateTime, fmtMAD, LOCATION_LABEL, MOVEMENT_TYPE_LABEL, userName } from '@/data/selectors'
+import { fmtDateTime, fmtMAD, formatMovementQuantity, LOCATION_LABEL, MOVEMENT_TYPE_LABEL, userName } from '@/data/selectors'
 import { useDataVersion } from '@/store/data-version'
 import type { StockLocationId } from '@/data/types'
 
@@ -37,7 +37,24 @@ export default function EconomatMouvements() {
             { key: 'product', label: 'Produit', render: (m) => <span className="font-medium text-ink-900">{productById(m.productId)?.name}</span> },
             { key: 'loc', label: 'Service', render: (m) => LOCATION_LABEL[m.location] },
             { key: 'type', label: 'Type', render: (m) => MOVEMENT_TYPE_LABEL[m.type] },
-            { key: 'qty', label: 'Quantité', render: (m) => (m.quantity > 0 ? `+${m.quantity}` : m.quantity) },
+            {
+              key: 'qty',
+              label: 'Quantité',
+              render: (m) => {
+                const isPositive = m.quantity > 0
+                return (
+                  <span
+                    className={clsx(
+                      'font-semibold text-xs',
+                      isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                    )}
+                  >
+                    {formatMovementQuantity(m)}
+                  </span>
+                )
+              },
+              sortValue: (m) => m.quantity,
+            },
             { key: 'user', label: 'Utilisateur', render: (m) => userName(m.userId) },
             { key: 'value', label: 'Valeur', render: (m) => (m.value != null ? fmtMAD(m.value) : '—') },
           ]}

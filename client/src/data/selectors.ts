@@ -1,7 +1,7 @@
 // Sélecteurs dérivés — calculent indicateurs, alertes et historiques à partir des données
 // générées (jamais de chiffre écrit en dur dans les écrans).
 import { CATEGORY_LABEL, PRODUCTS } from './catalog'
-import { BALANCES, CUMP, DEMO_TODAY, GOODS_RECEIPTS, MOVEMENTS, OUTFLOWS, PURCHASE_ORDERS, REAL_STOCKS, REQUISITIONS } from './generate'
+import { BALANCES, CUMP, DEMO_TODAY, GOODS_RECEIPTS, MOVEMENTS, OUTFLOWS, PURCHASE_ORDERS, REQUISITIONS, THEORETICAL_STOCKS } from './generate'
 import { SUPPLIERS, userById } from './referentials'
 import type { MovementType, Product, RequisitionStatus, Role, StockAlert, StockLocationId } from './types'
 
@@ -17,8 +17,11 @@ export const fmtDateTime = (iso: string) => {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
+// Stock Réel : recalculé et mis à jour automatiquement par le système selon les flux réels (ventes Z, réceptions, prélèvements)
 export const stockAt = (location: StockLocationId, productId: string) => BALANCES[location][productId] ?? 0
-export const realStockAt = (location: StockLocationId, productId: string) => REAL_STOCKS[location][productId] ?? (BALANCES[location][productId] ?? 0)
+export const realStockAt = (location: StockLocationId, productId: string) => BALANCES[location][productId] ?? 0
+export const theoreticalStockAt = (location: StockLocationId, productId: string) =>
+  THEORETICAL_STOCKS[location]?.[productId] ?? (BALANCES[location][productId] ?? 0)
 export const cumpOf = (productId: string) => CUMP[productId]
 
 // Le seuil minimum d'alerte s'applique exclusivement au Stock Central (Économat)
@@ -41,9 +44,9 @@ export function alertsFor(location: StockLocationId | 'bar' | 'cuisine'): StockA
 }
 
 // Décomposition des doses fines & fonds de bouteilles
-export function stockDoseBreakdown(location: StockLocationId, productId: string) {
+export function stockDoseBreakdown(location: StockLocationId, productId: string, overrideQty?: number) {
   const p = PRODUCTS.find((prod) => prod.id === productId)
-  const qty = stockAt(location, productId)
+  const qty = overrideQty !== undefined ? overrideQty : stockAt(location, productId)
   const dosesPerBtl = p?.dosesPerBottle || (p?.storageUnit === 'bouteille' ? 15 : 1)
   const fullBottles = Math.floor(qty)
   const openDoses = Math.round((qty - fullBottles) * dosesPerBtl)
@@ -94,6 +97,61 @@ export function productVolumeLiters(p: Product, qty: number): number {
     return Math.round((qty * volMl) / 10) / 100
   }
   return 0
+}
+
+// Formatage propre des mouvements : doses, bouteilles, packs, unités sans virgule disgracieuse
+export function formatMovementQuantity(m: {
+  productId: string
+  quantity: number
+  unit?: string
+  fineDetail?: string
+}): string {
+  if (m.fineDetail) return m.fineDetail
+  const p = PRODUCTS.find((prod) => prod.id === m.productId)
+  const isPositive = m.quantity > 0
+  const sign = isPositive ? '+' : '-'
+  const absQty = Math.abs(m.quantity)
+
+  // Pour les spiritueux (déclinaison bouteille / doses)
+  if (p?.storageUnit === 'bouteille' && p?.dosesPerBottle && p.dosesPerBottle > 1) {
+    const dosesCount = Math.round(absQty * p.dosesPerBottle)
+    const btlInt = Math.floor(dosesCount / p.dosesPerBottle)
+    const remDoses = dosesCount % p.dosesPerBottle
+
+    if (btlInt > 0 && remDoses > 0) {
+      return `${sign}${btlInt} btl et ${remDoses} doses`
+    }
+    if (btlInt > 0 && remDoses === 0) {
+      return `${sign}${btlInt} btl (${dosesCount} doses)`
+    }
+    return `${sign}${dosesCount} doses`
+  }
+
+  // Pour les packs (bières, sodas, etc.)
+  if (p?.packSize && absQty >= p.packSize && absQty % p.packSize === 0) {
+    const packs = absQty / p.packSize
+    return `${sign}${absQty} ${m.unit || p.storageUnit || 'u'} (${packs} pack${packs > 1 ? 's' : ''})`
+  }
+
+  // Quantité standard sans virgule disgracieuse
+  const cleanQty = Number.isInteger(m.quantity)
+    ? m.quantity
+    : Math.round(m.quantity)
+  return `${isPositive ? `+${cleanQty}` : cleanQty} ${m.unit || p?.storageUnit || 'u'}`
+}
+
+export function formatStockDisplay(qty: number, productId: string): string {
+  const p = PRODUCTS.find((prod) => prod.id === productId)
+  if (p?.storageUnit === 'bouteille' && p?.dosesPerBottle && p.dosesPerBottle > 1) {
+    const totalDoses = Math.round(qty * p.dosesPerBottle)
+    const btlInt = Math.floor(totalDoses / p.dosesPerBottle)
+    const remDoses = totalDoses % p.dosesPerBottle
+    if (btlInt === 0 && remDoses > 0) return `0 btl + ${remDoses} doses (${qty.toFixed(2)} btl)`
+    if (remDoses > 0) return `${btlInt} btl & ${remDoses} doses`
+    return `${btlInt} btl (${totalDoses} doses)`
+  }
+  const cleanQty = Number.isInteger(qty) ? qty : Math.round(qty * 100) / 100
+  return `${cleanQty} ${p?.storageUnit ?? 'u'}`
 }
 
 export type TimePeriod = 'jour' | 'semaine' | 'mois' | 'annee'
